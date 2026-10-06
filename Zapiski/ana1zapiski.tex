@@ -8,12 +8,17 @@
 \usepackage{amssymb}
 \usepackage{parskip}
 \usepackage{pgfplots}
+\pgfplotsset{compat=1.16}
+\usepgfplotslibrary{colormaps,fillbetween}
 \usepackage{comment}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
 %\usepackage{mdframed}
 %\usepackage{thmbox}
+\usepackage{adjustbox}
+\usepackage{mathdots}
+\usepackage{enumitem}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -27,9 +32,13 @@
 \usepackage{ifthen}
 \usepackage{tikz}
 \usetikzlibrary{calc}
-
-
-
+\usetikzlibrary{cd}
+\usetikzlibrary{babel}
+\usetikzlibrary{lindenmayersystems}
+\pgfdeclarelindenmayersystem{cantor set}{
+  \rule{F -> FfF}
+  \rule{f -> fff}
+}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \usepackage{tcolorbox}
 \tcbuselibrary{skins, breakable}
@@ -43,9 +52,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \graphicspath{ {./images/} }
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 
 \newtheorem{izr}{Izrek}[section]
 
@@ -97,7 +103,7 @@
 }
 
 {\theoremstyle{definition}
-\newtheorem{defi}{Definicija}[section]
+\newtheorem{defi}[izr]{Definicija}
 \newtheorem{aksiom}{Aksiom}[section]
 }
 
@@ -110,7 +116,7 @@
   coltext=black,
   colback=white, 
   fontupper=\rmfamily,
-  parbox=false,
+  %parbox=false,
   noparskip,
   sharp corners,
   boxrule=-1pt,  % width of the box' edges
@@ -130,14 +136,14 @@
   ]}
 {\endtcolorbox}
 
-\newenvironment{definicija}{\begin{defi}\begin{noticeB}}{%
-    \end{noticeB}\end{defi}}
+\newenvironment{definicija}{\begin{noticeB}\begin{defi}}{%
+\end{defi}\end{noticeB}}
 
 {\theoremstyle{remark}
 \newtheorem*{opomba}{Opomba}
 }
 
-\newtheorem{zgled}{Zgled}[section]
+\newtheorem{zgled}[izr]{Zgled}
 \tcolorboxenvironment{zgled}{%
   enhanced jigsaw,
   boxrule=-1pt,
@@ -173,7 +179,7 @@
   breakable,
   coltext=black, 
   fontupper=\rmfamily,
-  parbox=false,
+  %parbox=false,
   noparskip,
   sharp corners,
   boxrule=-1pt,  % width of the box' edges
@@ -201,7 +207,25 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+\usepackage{etoolbox}
+\newcommand{\boxfnlist}{}
 \makeatletter
+\newcommand{\boxfootnote}[1]{%
+  \global\advance\c@footnote by 1\relax
+  \footnotemark[\arabic{footnote}]%
+  \expandafter\gdef\csname bfn@\arabic{footnote}\endcsname{#1}%
+  \xdef\boxfnlist{\boxfnlist,\arabic{footnote}}%
+}
+\newcommand{\flushboxfootnotes}{%
+  \begingroup
+  \@for\@bfn@i:=\boxfnlist\do{%
+    \ifx\@bfn@i\@empty\else
+      \expandafter\footnotetext\expandafter[\@bfn@i]{\csname bfn@\@bfn@i\endcsname}%
+    \fi
+  }%
+  \endgroup
+  \gdef\boxfnlist{}%
+}
 \newlength\xvec@height%
 \newlength\xvec@depth%
 \newlength\xvec@width%
@@ -236,6 +260,18 @@
   #2%
 }
 \makeatother
+\newcommand{\enterboxfootnotes}{\let\footnote\boxfootnote}
+\newcommand{\exitboxfootnotes}{\flushboxfootnotes}
+\AtBeginEnvironment{izrek}{\enterboxfootnotes}
+\AfterEndEnvironment{izrek}{\exitboxfootnotes}
+\AtBeginEnvironment{definicija}{\enterboxfootnotes}
+\AfterEndEnvironment{definicija}{\exitboxfootnotes}
+\AtBeginEnvironment{zgled}{\enterboxfootnotes}
+\AfterEndEnvironment{zgled}{\exitboxfootnotes}
+\AtBeginEnvironment{lema}{\enterboxfootnotes}
+\AfterEndEnvironment{lema}{\exitboxfootnotes}
+\AtBeginEnvironment{dokaz}{\enterboxfootnotes}
+\AfterEndEnvironment{dokaz}{\exitboxfootnotes}
 
 % --- Override \vec with an invocation of \xvec.
 \let\stdvec\vec
@@ -244,6 +280,7 @@
 \newcommand{\dvec}[1]{\xvec[.]{#1}}
 \newcommand{\ddvec}[1]{\xvec[:]{#1}}
 \newcommand{\stcomp}[1]{{#1}^{\mathsf{c}}}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -259,6 +296,7 @@
 \newcommand{\rlimf}[3]{\lim_{#1 \downarrow #2} {#3}}
 \newcommand{\llimf}[3]{\lim_{#1 \uparrow #2} {#3}}
 \DeclareMathOperator{\di}{d\!}
+\DeclareMathOperator{\Int}{Int}
 
 \newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace\hspace{0pt}}m{#1}}
 
@@ -277,22 +315,22 @@
 %\begin{center}
     \section{ŠTEVILA}
 %\end{center}
+\subsection{Aksiomi operacij seštevanja in množenja}
 
 Naravna števila so števila, s katerimi štejemo. Označimo jih:
 $\mathbb{N} = \{1,2,3,\cdots\}.$   
 Na tej množici poznamo operaciji $+,\cdot$, torej lahko na njej seštevamo in množimo.
 Enačba $x + 5 = 3$ nima rešitve v $\mathbb{N}$, čeprav je izražena samo z naravnimi števili. Zato $\N$ razširimo na cela števila.
     
-Množico celih števil označimo: $\mathbb{Z} = \{0,1,-1,2,-2,\cdots\}.$
+Množico celih števil označimo: $\mathbb{Z} = \{\dots, -3, -2, -1, 0,1,2,3,\cdots\}.$
 Na njej imamo operaciji $+,\cdot$ in na množici celih števil lahko seštevamo, odštevamo in množimo.
 V $\Z$ ne moremo rešiti enačbe $2x - 1 = 0,$ čeprav je izražena samo s celimi števili. Zato $\Z$ razširimo na množico racionalnih števil.
 
 Elementi množice racionalnih števil $\Q$ so ulomki $\frac{p}{q},\ p,q \in \mathbb{Z},\ q \neq 0$. Pri tem sta dva ulomka $\frac{p}{q}$ in $\frac{p'}{q'}$ enaka tedaj in le tedaj, ko velja $pq' = p'q$.
 Ulomek $\frac{p}{q}$ je okrajšan tedaj in le tedaj, ko $p$ in $q$ nimata netrivialnih skupnih faktorjev.
 V $\Q$ imamo operaciji $+,\cdot$, torej lahko seštevamo, odštevamo, množimo in delimo (s števili, različnimi od nič). 
-Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja: aksiome.
-
-\subsection{Aksiomi operacij seštevanja in množenja.}
+Tehnične podrobnosti konstrukcije racionalnih števil pri tem predmetu izpustimo. V tem razdelku si bomo ogledali 
+temeljne lastnosti, ki jim ustrezata seštevanje in množenje racionalnih števil. Tem lastnostim bomo rekli aksiomi.
 
 \begin{aksiom}[A1]
     Asociativnost operacije seštevanja: za $\forall a,b,c \in \mathbb{Q}$ velja $$(a+b)+c = a+(b+c).$$
@@ -310,7 +348,7 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
     Obstoj nasprotnega elementa za seštevanje: za $\forall a \in \mathbb{Q}$ obstaja nasprotno število $-a$, da velja $$a + (-a) = 0.$$
 \end{aksiom}
 
-{Množica A z binarno operacijo z lastnostmi A1 -- A4 je Abelova (komutativna) grupa, kot na primer $(\mathbb{Q},+) \text{,}\  (\mathbb{Z},+)\  \text{ali}\  (\mathbb{Q} \setminus \{0\}, \cdot)$.}
+{Množica $A$ z binarno operacijo z lastnostmi A1-A4 je Abelova (komutativna) grupa, kot na primer $(\mathbb{Q},+) \text{,}\  (\mathbb{Z},+)\  \text{ali}\  (\mathbb{Q} \setminus \{0\}, \cdot)$.}
 
 \begin{posledica}
     Za dani $a \in \Q$ je nasprotni element en sam (njegov obstoj zagotavlja aksiom A4). 
@@ -338,12 +376,12 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
         a + x = a + y
         &\implies (-a) + a + x = (-a) + a + y\\
         &\stackrel{(A4)}{\implies} 0 + x = 0 + y\\
-        &\stackrel{(A3)}{\implies} x = y \qedhere
+        &\stackrel{(A3)}{\implies} x = y. \qedhere
     \end{align*}
 \end{dokaz}
 
 \begin{posledica}
-    Enota za seštevanje je sama sebi nasprotno število: $-0 = 0$  
+    Enota za seštevanje je sama sebi nasprotno število: $-0 = 0$.  
 \end{posledica} 
 
 \begin{dokaz}
@@ -367,30 +405,31 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
         Denimo, da $x$ reši enačbo $x+b=a$. Tedaj velja
         \begin{align*}
             x+b = a &\implies x+b+(-b)=a+(-b)\\
-            &\implies x = a-b
+            &\implies x = a-b.
         \end{align*}
         Dokažimo še, da $a-b$ res reši to enačbo.
         \begin{align*}
             (a-b) + b &= a + (-b) + b
             = a + 0
-            = a \qedhere
+            = a. \qedhere
         \end{align*}
 \end{dokaz}
     
+
 \begin{aksiom}[A5]
-    Asociativnost operacije množenja: za $\forall a,b,c \in \mathbb{Q}$ velja $$(a \cdot b)c = a(b \cdot c)$$
+    Asociativnost operacije množenja: za $\forall a,b,c \in \mathbb{Q}$ velja $$(a \cdot b)c = a(b \cdot c).$$
 \end{aksiom}
 
 \begin{aksiom}[A6]
-    Komutativnost operacije množenja: za $\forall a,b \in \mathbb{Q}$ velja $$a \cdot b = b \cdot a$$
+    Komutativnost operacije množenja: za $\forall a,b \in \mathbb{Q}$ velja $$a \cdot b = b \cdot a.$$
 \end{aksiom}
 
 \begin{aksiom}[A7]
-    Obstoj nevtralnega elementa (enote) za operacijo množenja: obstaja $1 \in \Q$, da za $\forall a \in \Q$ velja $$a \cdot 1 = a$$
+    Obstoj nevtralnega elementa (enote) za operacijo množenja: obstaja $1 \in \Q$, da za $\forall a \in \Q$ velja $$a \cdot 1 = a.$$
 \end{aksiom}
 
 \begin{aksiom}[A8]
-    Obstoj recipročnega elementa za operacijo množenja: za $\forall a \in \Q \setminus \{0\}$ obstaja $a^{-1}$, da je $$a \cdot a^{-1} = 1$$
+    Obstoj recipročnega elementa za operacijo množenja: za $\forall a \in \Q \setminus \{0\}$ obstaja $a^{-1}$, da je $$a \cdot a^{-1} = 1.$$
 \end{aksiom}
 
 \begin{posledica}
@@ -416,16 +455,16 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
     \begin{align*}
         ax = ay &\implies a^{-1} \cdot ax = a^{-1} \cdot ay\\ 
         &\implies 1 \cdot x = 1\cdot y\\ 
-        &\implies x = y \qedhere
+        &\implies x = y. \qedhere
     \end{align*}
 \end{dokaz}
     
 \begin{aksiom}[A9]
-    Enota za seštevanje ni enaka enoti za množenje: $1 \neq 0$
+    Enota za seštevanje ni enaka enoti za množenje: $1 \neq 0$.
 \end{aksiom}
 
 \begin{posledica} 
-    Recipročna vrednost enote je enaka enoti sami: $1^{-1}=1$
+    Recipročna vrednost enote je enaka enoti sami: $1^{-1}=1$.
 \end{posledica}
 
 \begin{dokaz}
@@ -437,11 +476,12 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
 \end{opomba}
 
 \begin{aksiom}[A10]
-    Distributivnost: za $\forall a,b,c \in \mathbb{Q}$ velja $$a(b + c)=ab + ac$$
+    Distributivnost: za $\forall a,b,c \in \mathbb{Q}$ velja $$a(b + c)=ab + ac.$$
 \end{aksiom}
 
 \begin{posledica}
-    Za $\forall a \in \Q$ velja $a\cdot 0 = 0$
+    Za $\forall a \in \Q$ velja $a\cdot 0 = 0$.
+\end{posledica}
 
     \begin{dokaz}
         \begin{align*}
@@ -449,15 +489,16 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
         &= a \cdot 1\\
         &= a \cdot (1+0)\\
         &= a \cdot 1 + a\cdot 0 \\
-        &= a + a \cdot 0
+        &= a + a \cdot 0.
         \end{align*}
         Torej imamo $a + 0 = a + a \cdot 0$ in zaradi pravil krajšanja $a \cdot 0 = 0.$
     \end{dokaz}
-\end{posledica}
+
+
 
 \begin{posledica}
-    Za $\forall a,b\in \mathbb{Q}$ velja $(-a)\cdot b=-(ab)$
-
+    Za $\forall a,b\in \mathbb{Q}$ velja $(-a)\cdot b=-(ab)$.
+\end{posledica}
     \begin{dokaz}
         \begin{align*}
             0 &= 0\cdot b\\
@@ -466,7 +507,7 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
         \end{align*}
         Iz tega sledi $(-a)b = -(ab).$
     \end{dokaz}
-\end{posledica}
+
 
 \begin{izrek}
     Edina rešitev enačbe $x\cdot b = a$ za $b \neq 0$ je $x = \frac{a}{b}$.
@@ -482,10 +523,20 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
         Očitno je tudi, da $x=\frac{a}{b}$ reši to enačbo:
             $\frac{a}{b} \cdot b = a$.
     \end{dokaz}
-{Če je (A,+,$\cdot$) komutativen obseg ali polje, lahko rešimo lahko vsako enačbo $ax + b = c,\ a \neq 0.$ Brez aksioma A8 je tak objekt komutativen kolobar.}
+{Če $(A,+,\cdot)$ ustreza aksiomom A1-A9, mu pravimo komutativen obseg ali polje.
+V polju lahko rešimo lahko vsako enačbo $ax + b = c,\ a \neq 0.$ 
+Če ne ustreza aksiomu A8, je tak objekt komutativen kolobar.}
+
+Na $\Q$ lahko na običajen način uvedemo urejenost. 
+
+\begin{definicija}
+    Element $\frac{p}{q} \in \Q$ je pozitiven (pišemo $\frac{p}{q} > 0$),
+    če je neničelen in sta $p, q \in \Z$ istega predznaka. Če sta nasprotnega predznaka, 
+    je negativen in pišemo $\frac{p}{q} < 0$. 
+\end{definicija}    
 
 \begin{aksiom}[A11]
-    Urejenost: če je $a\neq 0$, je natanko eno od števil $a$ in $-a$ pozitivno.
+    Če je $a\neq 0$, je natanko eno od števil $a$ in $-a$ pozitivno.
 \end{aksiom}
  
 \begin{opomba}
@@ -496,41 +547,43 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
     Usklajenost seštevanja in množenja z urejenostjo: za pozitivni števili $a, b$ sta $a+b$ in $a \cdot b$ prav tako pozitivni števili.
 \end{aksiom}
 
-\begin{opomba}
-    Za števili $a,b$ lahko rečemo, da je $a$ večje od $b\ (a>b)$, če je njuna razlika $a-b$ pozitivno število.
-    Število $a$ je pozitivno natanko tedaj, ko je $a > 0$, in negativno natanko tedaj, ko je $a< 0$.
-    Za pozitivni števili velja natanko ena od treh možnosti: $a>b$, $a<b$, ali $a=b$. Taka urejenost je linearna urejenost.
-\end{opomba}
+\begin{definicija}
+    Racionalna števila lahko uredimo: za $a, b \in \Q$ 
+    rečemo, da je $a$ večje od $b\ (a>b)$, če je njuna razlika $a-b$ pozitivno število.
+\end{definicija}
+
+Za poljubni racionalni števili velja natanko ena od treh možnosti: $a>b$, $a<b$, ali $a=b$. 
+Taka urejenost je linearna urejenost.
 
 \begin{posledica}
-    Tranzitivnost: Če velja $a>b$ in $b>c$, potem velja tudi $a>c$
+    Tranzitivnost: Če velja $a>b$ in $b>c$, potem velja tudi $a>c$.
+\end{posledica}
 
     \begin{dokaz}
         \begin{align*}
             a-b>0,\ b-c>0 &\implies (a-b) + (b-c) > 0\\
             &\implies a-c>0\\
-            &\implies a>c \qedhere
+            &\implies a>c. \qedhere
         \end{align*}
     \end{dokaz}
-\end{posledica}
-
 \begin{posledica}
-    Iz $a>b$ sledi $a+c>b+c$
+    Iz $a>b$ sledi $a+c>b+c$.
+\end{posledica}
 
     \begin{dokaz}
         \begin{equation*}
-            (a+c)-(b+c)=a-b >0 \implies (a+c)>(b+c) \qedhere
+            (a+c)-(b+c)=a-b >0 \implies (a+c)>(b+c). \qedhere
         \end{equation*}
     \end{dokaz}
-\end{posledica}
-
 \begin{posledica}
-    Iz $a>b$ in $c>0$ sledi $ac>bc$
+    Iz $a>b$ in $c>0$ sledi $ac>bc$.
 \end{posledica}
 
 \begin{dokaz}
-        $$ac-bc=c(a-b) >0 \implies ac>bc$$
-    \end{dokaz}
+    \begin{equation*}
+        ac-bc=c(a-b) >0 \implies ac>bc. \qedhere
+    \end{equation*}
+\end{dokaz}
     
 {Množica $(\mathbb{Q},+,\cdot,>)$ z lastnostmi A1-A12 je urejen obseg.} Vse te lastnosti ima tudi obseg realnih števil $\R$. Kaj je lastnost, ki naredi $\R$ bistveno drugačno od $\Q$?
 
@@ -554,7 +607,7 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
 \subsection{Omejenost nepraznih množic}
 
 \begin{definicija}
-    Naj bo $S$ neprazna množica z linearno urejenostjo >.
+    Naj bo $S$ neprazna množica z linearno urejenostjo $>$.
     \begin{enumerate}
         \item Neprazna množica $A \subseteq S$ je {navzgor omejena}, če obstaja tak $M \in S$, da je $\forall a \in A,\ a \leq M$ in $M$ je zgornja meja.
         \item Neprazna množica $A \subseteq S$ je {navzdol omejena}, če obstaja tak $m \in S$, da je $\forall a \in A,\ a \geq m$ in $m$ je spodnja meja.
@@ -569,8 +622,8 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
 \begin{definicija}
     Naj bo $A \neq \emptyset$ navzgor omejena množica v $S \subseteq \mathbb{Q}$. Število $b \in S$ je {supremum} ali natančna zgornja meja množice $A$ (označimo $b = \sup A$), če velja:
     \begin{enumerate}
-    \item za $\forall a \in A$ je $a\leq b$
-    \item za $\forall b'<b$ obstaja tak $a' \in S$, da velja $b' < a' \leq b$. To lahko zapišemo tudi drugače: $$\forall \varepsilon > 0: \exists a' \in A: b-\varepsilon < a' \leq b$$
+    \item za $\forall a \in A$ je $a\leq b$;
+    \item za $\forall b'<b$ obstaja tak $a' \in S$, da velja $b' < a' \leq b$. To lahko zapišemo tudi drugače: $$\forall \varepsilon > 0: \exists a' \in A: b-\varepsilon < a' \leq b.$$
     \end{enumerate}
 \end{definicija}
     
@@ -579,7 +632,7 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
 \end{zgled}    
     \begin{dokaz}
     Naj bo $A = \{a \in \mathbb{Q}; a\geq 0\ \text{in}\ a^2 \leq 2\}$.
-    Ta množica je navzgor omejena, saj za $a < 2$ velja $a^2 > 4 > 2$.
+    Ta množica je navzgor omejena z $2$, saj za $a > 2 $ velja $a^2 > 4 > 2$.
      Denimo, da obstaja $b = \sup A \in \mathbb{Q}$.
         Če je $b^2=2$, pridemo do protislovja po izreku \ref{th:1}. Torej mora veljati bodisi $b^2<2$ bodisi $b^2>2$.
         Če je $b^2<2$, potem lahko izberemo tak $0<h<1$, da velja $b+h>b$ in $(b+h)^2<2$, kar je protislovje.
@@ -599,6 +652,8 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
     Dedekindov aksiom ne velja za $\mathbb{Q}$.
 \end{opomba}
 
+V tem razdelku bomo dokazali naslednji izrek.
+
 \begin{izrek}[Obstoj množice realnih števil $\R$]
     Obstaja urejen obseg števil $\mathbb{R}$, ki zadošča tudi aksiomu A13 in ki vsebuje obseg racionalnih števil kot urejen podobseg
     ($\mathbb{Q} \subseteq \mathbb{R}$), operaciji $+, \cdot$ in urejenost v obsegu $\mathbb{R}$ pa sovpadajo s tistimi v $\mathbb{Q}$. Tak urejen obseg je en sam do izomorfizma natančno.
@@ -607,13 +662,18 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
 \begin{definicija}
     {Rez} je taka neprazna množica $A \subseteq \Q$, ki ni ves $\Q$, da velja:
     \begin{enumerate}
-    \item če je $a \in A$ in $a'<a$, potem je $a' \in A$
-    \item za vsak $a \in A$ obstaja $a''$, tako da velja $a'' > a$ in $a'' \in A $
+    \item če je $a \in A$ in $a'<a$, potem je $a' \in A$;
+    \item za vsak $a \in A$ obstaja $a''$, tako da velja $a'' > a$ in $a'' \in A $.
     \end{enumerate}
 \end{definicija}
 
 \begin{opomba}
-    Reze si lahko predstavljamo kot odprte v levo neomejene poltrake.
+    \begin{itemize}
+        \item Vsak rez je navzgor omejen. Denimo, da to ni res, torej naj $A$ ne bo nazvgor omejen.
+        Vzemimo poljuben $r \in \Q$, potem obstaja $r' > r$, tako da je $r' \in A$. Po definiciji reza je tudi $r \in A$.
+        S tem smo dokazali, da je $A = \Q$, protislovje.
+        \item Reze si lahko predstavljamo kot odprte v levo neomejene poltrake.
+    \end{itemize}
 \end{opomba}
 
 \begin{zgled}
@@ -621,75 +681,62 @@ Ogledali si bomo osnovne lastnosti računskih operacij seštevanja in množenja:
     $r^{*} = \{a \in \Q;\ a < r\}$ rez, ki predstavlja racionalno število $r$.
 \end{zgled}
 
-Množico $\R$ vpeljemo tako, da realna števila predstavimo z rezi (kot v zgornjem zgledu) in na njih vpeljemo operacije in urejenost $+, \cdot, >$.
-Preveriti moramo, da za definirane operacije veljajo aksiomi A1 - A13.
-
 \begin{definicija}
-    Relacijo $>$ na rezih vpeljemo z relacijo stroge inkluzije. Za reza A, B velja $A < B$ natanko tedaj, ko velja $A \subset B$.
+    Množico $\R$ definiramo kot množico vseh rezov na $\Q$.
 \end{definicija}
 
-\begin{opomba}
-    Za poljubna dva reza veljajo natanko 3 možnosti: $A<B, A>B\ \text{ali}\ A=B$.
-\end{opomba}
-
-Kdaj je rez $A$ pozitiven? Vemo, da velja $A>0^{*}$ natanko tedaj, ko $0^{*} \subset A$ oz. A vsebuje vsa negativna racionalna števila in število $0$.
+Iz ZFC aksiomov sledi, da je zgornja definicija smiselna, 
+torej da je $\R$ res množica (in sicer podmnožica potenčne množice $\mathcal{P}(\Q)$).
+Na tej množici bomo definirali operaciji seštevanja, množenja in urejenosti in dokazali, da se te ujemajo 
+s seštevanjem, množenjem in urejenostjo na $\Q$, ki je vsebovana v $\R$.
+Nadalje bomo dokazali, da za njih veljajo aksiomi A1-A13.
 
 \begin{definicija}
     Naj bosta $A,B$ reza. Potem je njuna vsota enaka $A + B = \{a+b; a\in A, b\in B\}$.
-\end{definicija}
-  
-\begin{posledica}
-    Za tako definirano operacijo rezov veljajo naslednje trditve:
-    \begin{enumerate}
-        \item Množica $A+B$ je rez.
-        \item Za $p,q \in \Q$ velja $p^{*} + q^{*} = (p+q)^{*}$. 
-        \item Za operacijo seštevanja na rezih veljajo aksiomi A1-A3.
-    \end{enumerate}
-\end{posledica}
-
-\begin{noticeC}
-    \begin{proof}[Dokaz 1. točke]
-        Po točkah dokažemo, da je $A+B$ rez.
-        \begin{enumerate}
-            \item Naj bo $s<r$ za nek $r \in A+B$. Vemo, da velja $r = a+b$ za neka $a \in A, b \in B$. Potem velja $s = (a - (r-s)) + b$ in $s \in A + B$.
-            \item Za vsak $r \in A+B$, kjer je $r = a + b$, obstajata $a' \in A,\ b' \in B$, da velja: $a' > a$ in $b' > b$, iz česar sledi $r' = a' + b' > r$ in $r' \in A + B$.
-            \item Ker velja $A \neq \emptyset$ in $B \neq \emptyset$, sledi $A+B \neq \emptyset$ in A+B ni prazna množica. Iz definicije rezov sledi, da je $A+B$ navzgor omejena množica, saj bi sicer zaradi lastnosti 1 bil enak $\Q$, kar pa smo izključili. \qedhere
-        \end{enumerate}
-    \end{proof}
-\end{noticeC}
-
-\begin{noticeC}
-    \begin{proof}[Dokaz 2. točke]
-        Dokažemo v obeh smereh:
-        \begin{enumerate}
-            \item Za vse $r \in (p+q)^{*}$ po definiciji velja $r < p+q$ in zato obstajata $p'< p,\ q'< q$, da velja $r = p' + q'$. Ker je $p' \in p^{*}$ in $q' \in q^{*}$, sledi $r = p' + q' \in p^{*}+q^{*}$.
-            \item Za vse $r \in p^{*} + q^{*}$ po definiciji obstajata $p' \in p^{*},\ q' \in q^{*}$, da je $r = p' + q'$. Iz tega sledi $r = p' + q' < p + q$ in $r \in (p + q)^{*}$. \qedhere
-        \end{enumerate}
-    \end{proof}
-\end{noticeC}
-
-\begin{definicija}
     {Nasprotni rez} reza $A$ definiramo kot $-A = \{r \in \Q;\ \exists r' > r,\ -r' \notin A\}$.
 \end{definicija}
 
-\begin{posledica}
-    Za nasprotni rez reza A veljata naslednji trditvi:
+\begin{trditev}
+    Za zgoraj definirano seštevanje velja naslednje:
     \begin{enumerate}
-        \item Množica $-A$ je rez.
-        \item Za tako definiran nevtralni element velja tudi aksiom A4 oziroma: $A + (-A) = 0^{*}$.
+        \item Seštevanje je dobro definirano (za reza $A, B$ je tudi $A + B$ rez).
+        \item Za $p,q \in \Q$ velja $p^{*} + q^{*} = (p+q)^{*}$. 
+        \item Veljajo aksiomi A1-A4.
     \end{enumerate}
-\end{posledica}
+\end{trditev}
 
-\begin{noticeC}
-    \begin{proof}[Dokaz 1. točke]
-        Ponovno po točkah dokažemo, da je $-A$ rez.
-        \begin{enumerate}
-        \item Naj bo $r \in -A$ in $s<r$. Potem obstaja tak $r'$, da velja $r<r'$ in $-r' \notin A$. Iz tega sledi, da obstaja za vsak s tak $r'$, da velja $s<r<r'$ in $-r' \notin A$, torej $s \in -A$.
-        \item Naj bo $r \in -A$. Potem velja $\exists r'>r: -r' \notin A$. Potem lahko najdemo element $s = \frac{r + r'}{2} \implies r<s<r'$, tako da je $s \in -A$.
-        \item Naj bo $r' \notin A$, saj A ni ves $\Q$. Potem za vsak $r<-r'$ velja $r \in -A$ in $-A$ je neprazna množica. Naj bo $s \in A$, saj je $A$ neprazna množica. Potem velja $-s \notin -A$ in $-A$ ni ves $\Q$. \qedhere
+
+\begin{dokaz}
+    \begin{enumerate}
+        \item Po točkah dokažemo, da je $A+B$ rez.
+        \begin{itemize}
+            \item Naj bo $s<r$ za nek $r \in A+B$. Vemo, da velja $r = a+b$ za neka $a \in A, b \in B$. Potem velja $s = (a - (r-s)) + b$ in $s \in A + B$.
+            \item Za vsak $r \in A+B$, kjer je $r = a + b$, obstajata $a' \in A,\ b' \in B$, da velja: $a' > a$ in $b' > b$, iz česar sledi $r' = a' + b' > r$ in $r' \in A + B$.
+            \item Ker velja $A \neq \emptyset$ in $B \neq \emptyset$, sledi $A+B \neq \emptyset$ in $A+B$ ni prazna množica. 
+            Prav tako sta množici $A$ in $B$ navzgor omejeni, zato je tudi $A + B$ navzgor omejena in ni celoten $\Q$. 
+        \end{itemize}
+        \item Za vse $r \in (p+q)^{*}$ po definiciji velja $r < p+q$ in zato obstajata $p'< p,\ q'< q$, da velja $r = p' + q'$. 
+        Ker je $p' \in p^{*}$ in $q' \in q^{*}$, sledi $r = p' + q' \in p^{*}+q^{*}$.
+        Za vse $r \in p^{*} + q^{*}$ po definiciji obstajata $p' \in p^{*},\ q' \in q^{*}$, da je $r = p' + q'$. 
+        Iz tega sledi $r = p' + q' < p + q$ in $r \in (p + q)^{*}$.
+        \item Dokažimo A3 (za vse aksiome so argumenti rutinski). Pokazali bomo torej, da je $0^*$ nevtralni element. Naj bo $A$ poljuben rez in dokazujemo $A + 0^* = A$.
+        Vzemimo nek $a \in A$ in naj bo $a' \in A$, tako da velja $a' > a$. Potem je $a = a' + (a - a') \in A + 0^*$.
+        Obratno vzemimo nek $a = a' + s \in A + 0^*$, tako da je $a' \in A$ in $s < 0$. Sledi $a' > a$, torej $a \in A$. \qedhere
     \end{enumerate}
-    \end{proof}
-\end{noticeC}
+\end{dokaz}
+
+\begin{definicija}
+    Relacijo $>$ na rezih vpeljemo z relacijo stroge inkluzije. Za reza $A, B$ velja $A < B$ natanko tedaj, ko velja $A \subset B$.
+    Če je $A > 0^*$, pravimo, da je rez $A$ pozitiven.
+\end{definicija}
+
+\begin{opomba}
+    Za poljubna dva reza veljajo natanko tri možnosti: $A<B$, $A>B$ ali $A=B$.
+    Denimo nasprotno, da obstajata točki $a \in A \setminus B$ in $b \in B \setminus A$.
+    Brez škode za splošnost predpostavimo $a < b$. Potem je tudi $a \in B$, protislovje.
+    S tem smo pravzaprav dokazali aksiom A11 za reze.
+\end{opomba}
+
 
 \begin{definicija}
     Naj bosta $A,B$ pozitivna reza. {Množenje na rezih} definiramo kot $$A \cdot B = \{a\cdot b; a \geq 0, a \in A, b\geq 0, b\in B\} \cup 0^{*},$$
@@ -697,21 +744,26 @@ Kdaj je rez $A$ pozitiven? Vemo, da velja $A>0^{*}$ natanko tedaj, ko $0^{*} \su
     $$A^{-1} = \{r \in \Q;\ r \geq 0,\ \exists r' >r,\ \frac{1}{r'} \notin A\} \cup 0^{*}$$
 \end{definicija}
 
-\begin{posledica}
-    Podobno kot prej velja, da sta $A\cdot B$ in $A^{-1}$ reza, $p^* \cdot q^* = (p \cdot q)^*$ in za tako definirano operacijo množenja na pozitivnih rezih veljajo aksiomi A5-A8. Dokazi so skoraj popolnoma enaki.
-\end{posledica}
+Sedaj lahko množenje razširimo še na ostale reze:
+\begin{enumerate}
+        \item če je $A < 0$, potem $A^{-1} := (-A)^{-1}$
+        \item če je $A > 0$ in $B < 0$, potem $A \cdot B := -(A \cdot (-B))$
+        \item če je $A < 0$ in $B > 0$, potem $A \cdot B := -((-A) \cdot B)$
+        \item če je $A,B < 0$, potem $A \cdot B := (-A) \cdot (-B)$
+        \item če je $A=0$ ali $B=0$, potem $A \cdot B := 0$
+\end{enumerate}
+Z rutinskimi dokazi kot prej lahko dokažemo naslednje.
 
-    Sedaj lahko množenje razširimo še na ostale reze:
+\begin{trditev}
+    Za zgoraj definirano množenje in urejenost velja naslednje:
     \begin{enumerate}
-        \item če je $A > 0$ in $B < 0$, potem $A \cdot B = -(A \cdot (-B))$
-        \item če je $A < 0$ in $B > 0$, potem $A \cdot B = -((-A) \cdot B)$
-        \item če je $A,B < 0$, potem $A \cdot B = (-A) \cdot (-B)$
-        \item če je $A=0$ ali $B=0$, potem $A \cdot B = 0$
+        \item Seštevanje je dobro definirano (za reza $A, B$ je tudi $A \cdot B$ rez).
+        \item Za $p,q \in \Q$ velja $p^{*} \cdot q^{*} = (p \cdot q)^{*}$. 
+        \item Veljajo aksiomi A5-A12.
     \end{enumerate}
+\end{trditev}
 
-\begin{posledica}
-    Za tako definirani operaciji seštevanja in množenja in ureditvijo $>$ na množici rezov veljajo aksiomi A1-A12.
-\end{posledica}
+Preostane nam še dokazati, da za $\R$ velja Dedekindov aksiom A13.
 
 \begin{izrek}
     Za urejen obseg rezov z operacijama seštevanja in množenja in ureditvijo $>$ velja aksiom A13. 
@@ -733,7 +785,7 @@ Kdaj je rez $A$ pozitiven? Vemo, da velja $A>0^{*}$ natanko tedaj, ko $0^{*} \su
             Naj bo rez $C' < C$. Iz definicije rezov sledi $C' \subset C$. Potem obstaja tak $c \in C = \bigcup_{A \in \mathcal{A}}A$, da velja $c \notin C'$ in rez $A \in \mathcal{A}$, da velja $c \in A$. Ker sta dva poljubna reza primerljiva po velikosti in $c \notin C'$, to pomeni , da je $C' < A$ in $C' \neq \sup B$. Torej smo dokazali, da je $C$ natančna zgornja meja množice $B$.
     \end{dokaz} 
 
-{Množica $\R$ je urejen obseg realnih števil, ki zadošča aksiomom A1-A13 in vsebuje $\Q$ kot urejen podobseg.} 
+{Množica $\R$ je torej urejen obseg realnih števil, ki zadošča aksiomom A1-A13 in vsebuje $\Q$ kot urejen podobseg.} 
 
 \subsection{Posledice Dedekindovega aksioma}
 
@@ -790,24 +842,25 @@ Kdaj je rez $A$ pozitiven? Vemo, da velja $A>0^{*}$ natanko tedaj, ko $0^{*} \su
 
 \begin{posledica}
     \label{pos:2}
-    Arhimedova lastnost realnih števil: za $\forall a,b > 0$ obstaja $n \in N$, da je $an > b$.
+    Arhimedova lastnost realnih števil: za $\forall a,b > 0$ obstaja $n \in \N$, da je $an > b$.
+\end{posledica}
 
     \begin{dokaz}
         Število $\frac{b}{a}$ ni zgornja meja za $\N$, torej obstaja tak $n \in \N$, da velja $n> \frac {b}{a}$, iz česar sledi $n \cdot a > b$.
     \end{dokaz} 
-\end{posledica}
-
 \begin{posledica}
-    Za $\forall \varepsilon > 0$ obstaja tak $n\in \N$, da je $0 < \frac{1}{n} < \varepsilon$
+    Za $\forall \varepsilon > 0$ obstaja tak $n\in \N$, da je $0 < \frac{1}{n} < \varepsilon$.
+
+\end{posledica}
 
     \begin{dokaz}
         Iz posledice \ref{pos:2} vemo, da za vsako po obstaja tako naravno število $n \in \N$, da velja $n \varepsilon > b$ oziroma $n > \frac{b}{\varepsilon}$. Če vstavimo $b = 1$, dobimo želeni rezultat $n > \frac{1}{\varepsilon}$ oziroma $\varepsilon > \frac{1}{n}$.
     \end{dokaz} 
-\end{posledica}
 
 \begin{posledica}
     Racionalna števila $\Q$ so povsod gosta v $\R$:
-    $$\forall x,y \in \R,\ x<y:\ \exists r \in \Q:\ x<r<y$$
+    $$\forall x,y \in \R,\ x<y:\ \exists r \in \Q:\ x<r<y.$$
+\end{posledica}
 
     \begin{dokaz}
         Sprva se bomo omejili na primer $y-x >1$, nato pa bomo splošen primer $y-x > 0$ prevedli na prvega.
@@ -822,9 +875,6 @@ Kdaj je rez $A$ pozitiven? Vemo, da velja $A>0^{*}$ natanko tedaj, ko $0^{*} \su
         \end{equation*}
         \end{enumerate}
     \end{dokaz}
-    
-\end{posledica}
-
 Oznake za posebne množice realnih števil:
 
 \begin{definicija}
@@ -832,7 +882,7 @@ Oznake za posebne množice realnih števil:
     \begin{enumerate}
         \item Zaprt interval definiramo kot $[a,b] = \{x \in \R; a \leq x \leq b\}$.
         \item Odprt interval definiramo kot $(a,b) =\{x \in \R; a <x< b\}$.
-        \item Polodprta intervala: $[a,b) = \{x \in \R; a \leq x < b\}$ in $(a,b] = \{x \in \R; a < x \leq b\}$
+        \item Polodprta intervala: $[a,b) = \{x \in \R; a \leq x < b\}$ in $(a,b] = \{x \in \R; a < x \leq b\}$.
     \end{enumerate}
 \end{definicija}
 
@@ -844,8 +894,18 @@ Oznake za posebne množice realnih števil:
     \end{enumerate}
 \end{definicija}
 
-Uporabljamo lahko tudi oznako $\R = (-\infty, \infty)$.
-Razširjeni sistem realnih števil je $\overline{\R} = \R \cup \{-\infty, \infty\}$, vendar pa operaciji $+, \cdot$ ne razširimo na $\overline{\R}$.
+\begin{opomba}
+    Uporabljamo lahko tudi oznako $\R = (-\infty, \infty)$.
+\end{opomba}
+
+Razširjeni sistem realnih števil je $\overline{\R} = \R \cup \{-\infty, \infty\}$. 
+Na njem lahko definiramo urejenost, tako da ohranimo urejenost na $\R$ in definiramo 
+$-\infty < x < \infty$. Prav tako za $x \in \R$ definiramo 
+$$x + \infty = + \infty,\quad x + (-\infty) = - \infty,\quad \frac{x}{\infty} = \frac{x}{-\infty} = 0.$$
+Če je $x > 0$, potem $x \cdot (+\infty) = + \infty$ in $x \cdot (-\infty) = - \infty$.
+Analogno za $x < 0$ velja $x \cdot (+\infty) = - \infty$ in $x \cdot (-\infty) = + \infty$.
+Trivialna opazka je, da ima vsaka množica $S \subseteq \overline{\R}$ zgornjo mejo $+\infty$,
+zato obstaja njen supremum. Enako velja za spodnje meje. 
 
 \subsection{Absolutna vrednost realnega števila}
 
@@ -862,6 +922,23 @@ Razširjeni sistem realnih števil je $\overline{\R} = \R \cup \{-\infty, \infty
     Za poljubna $x,y \in \R$ velja $$|x+y|\leq|x|+|y|.$$
     Enakost velja natanko tedaj, ko sta $x,y$ enako predznačena.
 \end{izrek}
+
+\begin{dokaz}
+    Razdelimo primere glede na predznak $x, y$.
+    \begin{itemize}
+        \item Denimo, da velja $x, y \geq 0$. Potem je zgornja neenakost 
+        $$x + y \leq x + y,$$
+        kar trivialno velja (v tem primeru imamo tudi enakost).
+        \item Če velja $x, y \leq 0$, potem zgornjo enakost prepišemo v 
+        $$-x-y \leq -x -y,$$
+        kar je ponovno res (in imamo še enakost).
+        \item Brez škode za splošnost si oglejmo še primer $x > 0 > y$.
+        Potem je $$x + y < x - y,\quad -(x + y)  < x - y,$$
+        zato sledi \begin{equation*}
+            |x + y| < x - y = |x| + |y|. \qedhere
+        \end{equation*} 
+    \end{itemize}
+\end{dokaz}
 
 \begin{zgled}
     Rešimo neenačbo $|x-a|<r$ za $a\in \R$ in $r>0$.
@@ -893,7 +970,7 @@ Razširjeni sistem realnih števil je $\overline{\R} = \R \cup \{-\infty, \infty
 Naj bo $x \in \R$. $[x]$ je celi del števila oz. največje celo število, ki je manjše ali enako $x$.
 
 \begin{definicija}
-    Naj bo $x \geq 0$. Decimalni zapis števila $x$ je $N, n_1 n_2 n_3 ...$, kjer je $N=[x]$ in $n_j \in \{0,1,\cdots,9\}$. 
+    Naj bo $x \geq 0$. Decimalni zapis števila $x$ je $N.n_1 n_2 n_3 \dots$, kjer je $N=[x]$ in $n_j \in \{0,1,\cdots,9\}$. 
 \end{definicija} 
 
 Decimalni zapis dobimo tako, da tvorimo naraščajoče zaporedje racionalnih približkov števila $x$.
@@ -916,19 +993,16 @@ Postopek nadaljujemo in dobimo naraščajoče zaporedje racionalnih števil $x_0
     Če je $b>0$, potem obstaja tak $k \in \N \cup \{0\}$, da je $0 < \frac{1}{10^k} < b$.
 \end{lema}             
     
-\begin{noticeC}
-    \begin{proof}[Dokaz leme]
+    \begin{dokaz}[Dokaz leme]
         Naj bo $A = \{10^n;\ n \in \N \cup \{0\}\}$. Dokazati moramo, da $A$ ni navzgor omejena. Če bi bila $A$ omejena, bi imela supremum $m = \sup A$ in bi obstajal tak $n' \in \N \cup \{0\}$, da bi veljalo: 
     $$m-9 < 10 ^{n'} \leq m \implies m < 10 ^{n'} + 9 \leq 10^{n'+1} \in A$$ in pridemo do protislovja.
-    \end{proof}
-\end{noticeC}
+    \end{dokaz}
 
-\begin{noticeC}
-    \begin{proof}[Dokaz izreka]
+
+    \begin{dokaz}[Dokaz izreka]
         Množica $\{x_0,x_1,\cdots\}$ je neprazna in navzgor omejena z $x$, zato po aksiomu A13 obstaja $\sup \{x_0,x_1,\cdots\} = y \leq x$. Predpostavimo, da velja $y<x$.     
         Zaradi \ref{lem:2} velja, da obstaja $k\in \N \cup \{0\}$, da velja $$\frac{1}{10^k} < x-y \leq x-x_k < \frac{1}{10^k},$$ kar pa je seveda nemogoče.
-    \end{proof}
-\end{noticeC}
+    \end{dokaz}
 
 Vsakemu realnemu številu smo priredili natanko določen decimalni zapis. Vsakemu decimalnemu zapisu pripada natanko eno realno število, a obstajajo različni decimalni zapisi, ki jim pripada isto realno število.
 
@@ -938,23 +1012,35 @@ Vsakemu realnemu številu smo priredili natanko določen decimalni zapis. Vsakem
     Pri naši konstrukciji bi lahko prišli zgolj do števila $1.000\ldots$, ne pa $0.999\ldots$.
 \end{zgled}
 
-Število je racionalno, natanko tedaj ko je njegov zapis od nekod dalje periodičen. Iracionalna števila nimajo periodičnega zapisa.
+Število je racionalno natanko tedaj, ko je njegov zapis od nekod dalje periodičen. Iracionalna števila nimajo periodičnega zapisa.
 
 \begin{definicija}
-    Število $r \in \R$ je {algebraično}, če obstaja polinom $$p(x)= a_n x^n + a_{n-1}x^{n-1} + \cdots + a_0$$ s koeficienti $a_n, \cdots, a_0 \in \Z,\ a_n \neq 0$ in velja $p(r) = 0$. Vsa racionalna števila so algebraična. Primer algebraičnega števila je $\sqrt{2}$.
-    Realna števila, ki niso algebraična, so transcendentna, npr. $\pi$.
+    Število $r \in \R$ je {algebraično}, če obstaja polinom $$p(x)= a_n x^n + a_{n-1}x^{n-1} + \cdots + a_0$$ s koeficienti $a_n, \cdots, a_0 \in \Z,\ a_n \neq 0$ in velja $p(r) = 0$. 
+    Realna števila, ki niso algebraična, so transcendentna.
 \end{definicija}
+
+\begin{zgled}
+    \begin{itemize}
+        \item Vsa racionalna števila so algebraična.
+        \item Primer iracionalnega števila, ki je algebraično, je $\sqrt{2}$.
+        \item Primer transcendentnega števila je $\pi$.
+    \end{itemize}
+\end{zgled}
+
 
 \subsection{Peanovi aksiomi}
 
-Peanovi aksiomi so aksiomi množice naravnih števil $\N$.
+Množico naravnih števil konstruiramo s pomočjo ZFC aksiomov.
+Tehnične podrobnosti te konstrukcije smo izpustili, vendar pa omenimo temeljne lastnosti naravnih števil,
+ki jim pravimo Peanovi aksiomi. Posebej pomemben za nas bo aksiom (P5), ki nam bo dal indukcijo,
+ki je v matematiki pomembno orodje za dokazovanje trditev.
 
 \begin{aksiom}[P1]
-    1 je naravno število
+    $1$ je naravno število.
 \end{aksiom}
 
 \begin{aksiom}[P2]
-    Vsakemu naravnemu številu $n$ sledi natančno določeno naravno število $n^+$, ki ga imenujemo naslednik števila $n$
+    Vsakemu naravnemu številu $n$ sledi natančno določeno naravno število $n^+$, ki ga imenujemo naslednik števila $n$.
 \end{aksiom}
 
 \begin{aksiom}[P3]
@@ -962,7 +1048,7 @@ Peanovi aksiomi so aksiomi množice naravnih števil $\N$.
 \end{aksiom}
 
 \begin{aksiom}[P4]
-    Število 1 ni naslednik nobenega naravnega števila.
+    Število $1$ ni naslednik nobenega naravnega števila.
 \end{aksiom}
 
 \begin{aksiom}[P5 - Princip popolne indukcije]
@@ -970,7 +1056,7 @@ Peanovi aksiomi so aksiomi množice naravnih števil $\N$.
     če velja $P \subseteq \N,\ 1 \in P$ in $n \in P \implies n^+ \in P$, potem velja $P = \N$.
 \end{aksiom}
 
-S pomočjo P1 - P5 na množici $\N$ uvedemo operaciji seštevanja in množenja.
+S pomočjo aksiomov P1-P5 na množici $\N$ uvedemo operaciji seštevanja in množenja.
 
 \begin{definicija}
     Naj bo $p \in \N$. Definirati moramo $p +k$ za vsak $k \in \N$. 
@@ -1032,7 +1118,7 @@ S pomočjo P1 - P5 na množici $\N$ uvedemo operaciji seštevanja in množenja.
 
 \begin{definicija}
     Naj bo $b>0$ in $n \in \N$. Definiramo $b^{\frac{1}{n}} = \sqrt[n]{b}$.
-    Za poljuben ulomek definiramo $b^{\frac{m}{n}} = (b^{\frac{1}{n}})^m$
+    Za poljuben ulomek definiramo $b^{\frac{m}{n}} = (b^{\frac{1}{n}})^m$.
 \end{definicija}
 
 Za tako definirane potence veljajo tri osnovna pravila potenciranja.
@@ -1040,9 +1126,9 @@ Za tako definirane potence veljajo tri osnovna pravila potenciranja.
 \begin{trditev}[Osnovna pravila potenciranja]
     Za $a,b \in \Q$ velja:
     \begin{enumerate}
-        \item $b^r \cdot b^s = b^{r+s}$
-        \item $(b^r)^s = b^{rs}$
-        \item $(ab)^r = a^r \cdot b^r$
+        \item $b^r \cdot b^s = b^{r+s}$;
+        \item $(b^r)^s = b^{rs}$;
+        \item $(ab)^r = a^r \cdot b^r$.
     \end{enumerate}
 \end{trditev}
 
@@ -1292,7 +1378,7 @@ za $z = a+bi$ in $w = c + di$ je $$z+w = (a+c) + (b+d)i.$$ Pri množenju pa se a
 To je bil le poseben primer naslednjega izreka.
 
 \begin{izrek}[Osnovni izrek algebre]
-    Obseg $\C$ je algebraično zaprt oz. vsak nekonstanten polinom $p(z)$ s kompleksnimi koeficienti ima vsaj eno ničlo v $\C$, t.j. obstaja $a \in \C$, da je $p(a) = 0$.
+    Obseg $\C$ je algebraično zaprt oz. vsak nekonstanten polinom $p(z)$ s kompleksnimi koeficienti ima vsaj eno ničlo v $\C$, t.j.~obstaja $a \in \C$, da je $p(a) = 0$.
 \end{izrek}
 
 \begin{posledica}
@@ -1524,8 +1610,8 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
 \begin{opomba}
     Seveda je tudi množica $\Z$ števno neskončna, saj zanjo lahko bijektivno zaporedje: 
     $$a_n = \begin{cases}
-        \frac{n-1}{2};& \text{n je liho}\\
-        -\frac{n}{2};& \text{n je sodo}
+        \frac{n-1}{2};& \text{n je liho,}\\
+        -\frac{n}{2};& \text{n je sodo.}
     \end{cases}$$
 \end{opomba}
 
@@ -1543,7 +1629,7 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
 
 \begin{posledica}
     Množica algebraičnih števil je števna.
-
+\end{posledica}
     \begin{dokaz}
         Naj bo $n \in \N$. Vseh polinomov stopnje $n$ s celoštevilskimi koeficienti je števno mnogo, saj je vsak tak polinom 
         $$p(x) = a_n x^n + a_{n-1} x^{n-1} + \dots + a_1 x + a_0,$$
@@ -1551,8 +1637,6 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
         $$(a_n, a_{n-1}, \dots a_1,a_0) \in \underbrace{\Z \times \Z \times \dots \times \Z}_{\text{n+1 faktorjev}}$$
         kjer $a_n \neq 0$. Vsak tak polinom definira največ $n$ algebraičnih števil, torej je množica vseh algebraičnih števil, ki so ničle kakšnega celoštevilskega koeficienta stopnje $n$, števna. Sedaj pa naredimo unijo po vseh $n \in \N$ in po prejšnjem izreku dobimo, da je množica vseh algebraičnih števil števna.
     \end{dokaz}
-\end{posledica}
-
 \begin{opomba}
     Množica transcendentnih števil je kontinuum.
 \end{opomba}
@@ -1568,7 +1652,7 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
     \end{dokaz}
 
 \begin{izrek}
-    Množica $\R$ ni števna: $|\N| < |\R|$
+    Množica $\R$ ni števna: $|\N| < |\R|$.
 \end{izrek}
 
 \begin{dokaz}
@@ -1581,11 +1665,12 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
             0; &\text{če je}\ n_{jj} \neq 0\\
             1; &\text{če je}\ n_{jj} = 0
         \end{cases}$$
-        Naj bo $x = 0, N_1 N_2 N_3 \ldots$ Očitno velja $x \in [0,1) = X.$ Tedaj za vsak $j \in \N$ velja $x \neq x_j,$ kar je protislovje. Tako smo dokazali, da ne velja $|\N| = |\R|$, torej sledi $|\N|$
+        Naj bo $x = 0, N_1 N_2 N_3 \ldots$ Očitno velja $x \in [0,1) = X.$ Tedaj za vsak $j \in \N$ velja $x \neq x_j,$ kar je protislovje. 
+        Tako smo dokazali, da ne velja $|\N| = |\R|$, torej sledi $|\N|$.
     \end{dokaz}
 
 \begin{izrek}
-    Za vsako množico $X$ je $|X| < |P(X)|$
+    Za vsako množico $X$ je $|X| < |P(X)|$.
 \end{izrek}
 
     \begin{dokaz}
@@ -1605,7 +1690,7 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
             Definirajmo funkcijo $\Psi(x): X \rightarrow \{0,1\}$ kot
             $$\Psi(x) = \begin{cases}
                 1; &\text{če je}\ (\Theta(x))(x) = 0\\
-                0; &\text{če je}\ (\Theta(x))(x) = 1
+                0; &\text{če je}\ (\Theta(x))(x) = 1.
             \end{cases}$$
             Tedaj hkrati velja $\Psi \in F$ in $\Psi \neq \Theta(x)$ za $\forall x \in X$, kar je protislovje. Torej bijekcija med $X$ in $F$ ne obstaja, iz česar sledi $|X| < |F|$.
         Ker smo dokazali $|F| = |P(X)|$ in $|X| < |F|$, sledi $|X|<|P(X)|$.
@@ -1629,18 +1714,18 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
     Podzaporedje danega zaporedja dobimo tako, da vzamemo le nekatere člene zaporedja. Tvorimo strogo naraščajoče zaporedje naravnih števil
     $1=n_1 < n_2 < n_3 < \cdots$, kjer je $n_j \in \N.$
     Podzaporedje, ki pripada temu določenemu zaporedju, je:
-    $$a_{n_1},a_{n_2},a_{n_3}, \dots = (a_{n_j})_{j=1} ^{\infty}$$
+    $$a_{n_1},a_{n_2},a_{n_3}, \dots = (a_{n_j})_{j=1} ^{\infty}.$$
 \end{definicija}
 
 \begin{zgled}
-    Zgledi nekaterih zaporedij
+    Zgledi nekaterih zaporedij:
     \begin{enumerate}
         \item Aritmetično zaporedje: za neka $a,d \in \R$ je
-        $a_n = a + (n-1)d,\ n \in \N$
+        $a_n = a + (n-1)d,\ n \in \N$.
         \item Geometrijsko zaporedje: za neka $a,q \in \R$ je
-        $a_n = aq^{n-1},\ n \in \N$
-        \item Zaporedje $a_n = \sqrt[n]n$
-        \item Zaporedje $a_n = \left(1 + \frac{1}{n} \right)^n$
+        $a_n = aq^{n-1},\ n \in \N$.
+        \item Zaporedje $a_n = \sqrt[n]n$.
+        \item Zaporedje $a_n = \left(1 + \frac{1}{n} \right)^n$.
     \end{enumerate}
 \end{zgled}
 
@@ -1701,6 +1786,7 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
     \caption{Zaporedje $a_n = \left(1 + \frac{1}{n} \right)^n$}
 \end{figure}
 %\end{comment}
+
 \subsection{Stekališča zaporedij}
 
 \begin{definicija}
@@ -1721,9 +1807,9 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
 \end{zgled}
 
 \begin{definicija}
-    Naj bo $A$ množica in $f: A \rightarrow \R$ realna funkcija. Funkcija $f$ je navzgor omejena, če je $Z(f)$ navzgor omejena v $\R$ t.j. 
-    obstaja $M \in \R$, da je za $\forall x \in A$ $f(x) \leq M$. Funkcija $f$ je navzdol omejena, če je $Z(f)$ navzgor omejena v $\R$ t.j.
-    obstaja $m \in \R$, da je za $\forall x \in A$ $f(x) \geq m$. Funkcija $f$ je omejena, če je navzgor in navzdol omejena.
+    Naj bo $A$ množica in $f: A \rightarrow \R$ realna funkcija. 
+    Funkcija $f$ je navzgor omejena, če je $Z(f)$ navzgor omejena v $\R$, t.j.~obstaja $M \in \R$, da je za $\forall x \in A$ $f(x) \leq M$. Funkcija $f$ je navzdol omejena, če je $Z(f)$ navzgor omejena v $\R$, 
+    t.j.~obstaja $m \in \R$, da je za $\forall x \in A$ $f(x) \geq m$. Funkcija $f$ je omejena, če je navzgor in navzdol omejena.
 \end{definicija}
 
 \begin{izrek}[Bolzano-Weierstrass]
@@ -1732,16 +1818,17 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
 \end{izrek}
 
 \begin{lema}
-            Če je $\zap{a}$ omejeno zaporedje, potem obstaja supremum za množico $$E = \{x \in \R;\ \text{$a_n < x$ velja za končno mnogo indeksov $n \in \N$}\}.$$
-        \end{lema}
-        \begin{dokaz}
-        Naj bo $(a_n)_{n=1} ^{\infty}$ omejeno zaporedje. Potem obstaja tak $M \in \R,\ M \geq 0$, da za $\forall n \in \N$ velja $-M \leq a_n \leq M.$
-        Naj bo $\alpha = \sup E$. Dokazati moramo, da za poljuben $\varepsilon > 0$ na intervalu $(\alpha - \varepsilon, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
-            Število $\alpha$ je zgornja meja za množico $E$, kar pomeni, da obstaja neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, ki ležijo levo od $\alpha + \varepsilon$. 
-            Prav tako je $\alpha$ natančna zgornja meja za $E$, torej obstaja tak $x \in E$, da velja $\alpha - \varepsilon < x \leq \alpha$. Torej levo od $x$ leži končno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
-            Ker levo od $\alpha + \varepsilon$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, levo od $x$ pa leži končno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, sledi sklep, da na intervalu $[x, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
-            Zaradi relacije $[x, \alpha + \varepsilon) \subseteq (\alpha - \varepsilon, \alpha + \varepsilon)$ velja, da na intervalu $(\alpha - \varepsilon, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$. 
-    \end{dokaz}
+    Če je $\zap{a}$ omejeno zaporedje, potem obstaja supremum za množico $$E = \{x \in \R;\ \text{$a_n < x$ velja za končno mnogo indeksov $n \in \N$}\}.$$
+\end{lema}
+
+\begin{dokaz}
+    Naj bo $(a_n)_{n=1} ^{\infty}$ omejeno zaporedje. Potem obstaja tak $M \in \R,\ M \geq 0$, da za $\forall n \in \N$ velja $-M \leq a_n \leq M.$
+    Naj bo $\alpha = \sup E$. Dokazati moramo, da za poljuben $\varepsilon > 0$ na intervalu $(\alpha - \varepsilon, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
+    Število $\alpha$ je zgornja meja za množico $E$, kar pomeni, da obstaja neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, ki ležijo levo od $\alpha + \varepsilon$. 
+    Prav tako je $\alpha$ natančna zgornja meja za $E$, torej obstaja tak $x \in E$, da velja $\alpha - \varepsilon < x \leq \alpha$. Torej levo od $x$ leži končno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
+    Ker levo od $\alpha + \varepsilon$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, levo od $x$ pa leži končno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$, sledi sklep, da na intervalu $[x, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$.
+    Zaradi relacije $[x, \alpha + \varepsilon) \subseteq (\alpha - \varepsilon, \alpha + \varepsilon)$ velja, da na intervalu $(\alpha - \varepsilon, \alpha + \varepsilon)$ leži neskončno mnogo členov zaporedja $(a_n)_{n=1} ^{\infty}$. 
+\end{dokaz}
     
 \begin{dokaz}[Dokaz leme]
             Dokazati moramo, da je $E$ neprazna in navzgor omejena. Ker velja $-M \in E$, je $E$ neprazna.
@@ -1889,13 +1976,12 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
 \end{izrek}
 
 \begin{posledica}
-    Pravila za računanje z limitami.
-
+    Pravila za računanje z limitami:
     \begin{enumerate}
-        \item $\limzap{a_n} + \limzap{b_n} = \limzap{(a_n + b_n)}$
-        \item $\limzap{a_n} - \limzap{b_n} = \limzap{(a_n - b_n)}$
-        \item $\limzap{a_n} \cdot \limzap{b_n} = \limzap{(a_n \cdot b_n)}$
-        \item $\frac{\limzap{a_n}}{\limzap{b_n}} = \limzap{(\frac{a_n}{b_n})}$
+        \item $\limzap{a_n} + \limzap{b_n} = \limzap{(a_n + b_n)}$;
+        \item $\limzap{a_n} - \limzap{b_n} = \limzap{(a_n - b_n)}$;
+        \item $\limzap{a_n} \cdot \limzap{b_n} = \limzap{(a_n \cdot b_n)}$;
+        \item $\frac{\limzap{a_n}}{\limzap{b_n}} = \limzap{(\frac{a_n}{b_n})}$.
     \end{enumerate}
 \end{posledica}
 
@@ -1906,7 +1992,7 @@ Pogosto opazujemo preslikave, ki niso definirane na vsem $X$, ampak le na neki p
             \begin{align*}
                 |(a_n + b_n)-(a+b)| &= |(a_n-a) + (b_n-b)|\\ 
                 &\leq |a_n - a| + |b_n - b|\\
-                &< \frac{\varepsilon}{2} + \frac{\varepsilon}{2} = \varepsilon \qedhere
+                &< \frac{\varepsilon}{2} + \frac{\varepsilon}{2} = \varepsilon. \qedhere
             \end{align*}
     \end{dokaz}
         
@@ -2740,8 +2826,9 @@ Z drugimi besedami: $f$ slika $(a-\delta, a+ \delta)$ v $(f(a)-\varepsilon, f(a)
             \begin{lema} 
                 \label{lem:4}
                 Za vsak $x \in \R$ velja
-                $|\sin x| \leq x$. Trditev ima geometrijski dokaz, ki smo ga že srečali v gimnaziji.
+                $|\sin x| \leq |x|$. 
             \end{lema}
+Lema ima geometrijski dokaz, ki smo ga že srečali v gimnaziji.
 
         \begin{dokaz}[Dokaz 6. točke]
             Za dokaz bomo uporabili lemo \ref{lem:4}.
@@ -2753,7 +2840,7 @@ Z drugimi besedami: $f$ slika $(a-\delta, a+ \delta)$ v $(f(a)-\varepsilon, f(a)
             \end{align*}
             Naj bo $\varepsilon>0.$ Izberimo $\delta = \varepsilon$ in dobimo:
             \begin{equation*}
-                |x-a| < \delta \implies |\sin x - \sin a| < \delta = \varepsilon \qedhere
+                |x-a| < \delta \implies |\sin x - \sin a| < \delta = \varepsilon. \qedhere
             \end{equation*}
         \end{dokaz}
 
@@ -2875,7 +2962,7 @@ Z drugimi besedami: $f$ slika $(a-\delta, a+ \delta)$ v $(f(a)-\varepsilon, f(a)
 Naj bo funkcija $f$ zvezna na $D$. 
 Potem za vsak $\varepsilon > 0$ obstaja takšen $\delta>0$, da iz $|x-a| < \delta$ sledi $|f(x)-f(a)| < \varepsilon$, kjer je $a \in D$. 
 V definiciji zveznosti je pri danem $\varepsilon>0$ izbor $\delta$ torej odvisen od $a \in D$. 
-Zanima nas, če lahko najdemo podoben $\delta$, ki ne bi bil odvisen od $a$, t.j. ali bi za izbrani $\delta$ veljal pogoj zveznosti za katerikoli $a \in D$.
+Zanima nas, če lahko najdemo podoben $\delta$, ki ne bi bil odvisen od $a$, t.j.~ali bi za izbrani $\delta$ veljal pogoj zveznosti za katerikoli $a \in D$.
 V splošnem to ne velja, zaradi česar uvedemo pojem enakomerne zveznosti funkcije.
 
 \begin{zgled}
@@ -2985,11 +3072,11 @@ V splošnem to ne velja, zaradi česar uvedemo pojem enakomerne zveznosti funkci
 
 \begin{izrek}
     Naj bo $f: [a,b] \rightarrow \R$ zvezna. Če je $f$ v krajiščih nasprotno predznačena oz. velja
-    $f(a) f(b) < 0,$ potem obstaja tak $c \in (a,b)$, da je $f(c) = 0$, tj. $f$ ima ničlo na intervalu $(a,b)$.
+    $f(a) f(b) < 0,$ potem obstaja tak $c \in (a,b)$, da je $f(c) = 0$, tj.~$f$ ima ničlo na intervalu $(a,b)$.
 \end{izrek}
     
 \begin{dokaz}
-    Metoda bisekcije: Denimo, da je $f(a) < 0$ in $f(b) > 0$. Naj bo $a_1 = a$, $b_1 = b$ in $c = \frac{a_1 + b_1}{2}$. 
+    Metoda bisekcije: denimo, da je $f(a) < 0$ in $f(b) > 0$. Naj bo $a_1 = a$, $b_1 = b$ in $c = \frac{a_1 + b_1}{2}$. 
     Če je $f(c_1) = 0$, smo ničlo našli, sicer pa velja bodisi $f(c_1) < 0$ bodisi $f(c_1) > 0$.
     V prvem primeru definiramo $a_2 = c_1$, $b_2 = b_1$, v drugem pa $a_2 = a_1$, $b_2 = c_1$.
     Postopek ponovimo na intervalu $[a_2, b_2]$, kjer ponovno velja $f(a_2) f(b_2) < 0.$ Če na katerem koli koraku dobimo ničlo, postopek zaključimo. 
@@ -3069,12 +3156,13 @@ V splošnem to ne velja, zaradi česar uvedemo pojem enakomerne zveznosti funkci
 \end{figure}
 
 \begin{definicija}
-    Naj bo $a \in \R$ in $r > 0$. Definiramo funkcijo $f : (a-r, a+r) \setminus \{a\} \rightarrow \R$ na punktirani oz. prebodeni okolici $a$. Število $A \in \R$ je limita funkcije $f$ v točki $a$, če za $\forall \varepsilon > 0$ obstaja $\delta > 0$\footnote{Veljati mora $0 < \delta \leq r$}, da velja
+    Naj bo $a \in \R$ in $r > 0$. Definiramo funkcijo $f : (a-r, a+r) \setminus \{a\} \rightarrow \R$ na punktirani oz. prebodeni okolici $a$. Število $A \in \R$ je limita funkcije $f$ v točki $a$, če za $\forall \varepsilon > 0$ obstaja $\delta > 0$\footnote{Veljati mora $0 < \delta \leq r$.}, da velja
     $|f(x) - A| < \varepsilon$ za vse $x$, ki zadoščajo $0 < |x-a| < \delta$. To označimo kot $A = \limf{x}{a}{f(x)}$.
 \end{definicija}
 
+Definicija močno spominja na definicijo zveznosti, le da $f$ v $a$ ni definirana.
+
 \begin{trditev}
-    Definicija močno spominja na definicijo zveznosti, le da $f$ v $a$ ni definirana.
     \begin{enumerate}
         \item Če je $f$ definirana na $(a-r, a+r)$ in zvezna v $a$, potem velja $\limf{x}{a}{f(x)} = f(a).$
         \item Če je $\limf{x}{a}{f(x)} = A$ in definiramo 
@@ -3193,7 +3281,7 @@ Levo limito pogosto označimo z $f(a-0)$ oz. $f(a-)$, desno pa z $f(a+0)$ oz. $f
 \end{dokaz}
 
 \begin{posledica}
-    Monotona funkcija ima največ števno mnogo skokov, t.j. točk nezveznosti.
+    Monotona funkcija ima največ števno mnogo skokov, t.j.~točk nezveznosti.
 \end{posledica}
 
 \begin{dokaz}
@@ -3337,7 +3425,7 @@ Levo limito pogosto označimo z $f(a-0)$ oz. $f(a-)$, desno pa z $f(a+0)$ oz. $f
 \begin{definicija}
     Naj bo $f$ definirana na $(a-r, a+r) \setminus \{a\}$ za $a \in \R$ in $r > 0$. 
     \begin{enumerate}
-        \item Pravimo, da $f$ konvergira k $+ \infty$, ko gre $x$ proti $a$, če za $\forall M \in \R$ (še tako velik) obstaja tak $\delta > 0$\footnote{Ponovno mora veljati mora $0 < \delta \leq r$}, da velja
+        \item Pravimo, da $f$ konvergira k $+ \infty$, ko gre $x$ proti $a$, če za $\forall M \in \R$ (še tako velik) obstaja tak $\delta > 0$\footnote{Ponovno mora veljati mora $0 < \delta \leq r$.}, da velja
         $f(x) > M$ za vse $x$, ki zadoščajo $0 < |x-a| < \delta$.
         \item Pravimo, da $f$ konvergira k $- \infty$, ko gre $x$ proti $a$, če za $\forall m \in \R$ (še tako majhen) obstaja tak $\delta > 0$, da velja
         $f(x) < m$ za vse $x$, ki zadoščajo $0 < |x-a| < \delta$.
@@ -3379,7 +3467,7 @@ Podobno definiramo tudi limito od $f$, ko gre $x$ proti minus neskončnosti: $\l
     Naslednji izjavi sta enakovredni:
     \begin{enumerate}
         \item Funkcija $f$ ima limito $\limf{x}{\infty}{f(x)} = A$.
-        \item Za vsako zaporedje $\zap{x}$\footnote{Zaporedje mora biti seveda definirano: za $\forall n$ velja $x_n > a$} velja, da če je
+        \item Za vsako zaporedje $\zap{x}$\footnote{Zaporedje mora biti seveda definirano: za $\forall n$ velja $x_n > a$.} velja, da če je
         $\limzap{x_n} = + \infty$, potem je tudi $\limzap{f(x_n)} = A$.
     \end{enumerate}
 \end{trditev}
@@ -3487,8 +3575,8 @@ Enačba tangente na graf $f$ v točki $(a, f(a))$ je $y - f(a) = f'(a)(x-a).$
 \begin{zgled}
     Iz prejšnjih zgledov lahko izračunamo naslednje odvode:
     \begin{enumerate}
-        \item Odvod funkcije $f(x) = c$ je $f'(x) = 0$
-        \item Odvod funkcije $f(x) = x$ je $f'(x) = 1$
+        \item Odvod funkcije $f(x) = c$ je $f'(x) = 0$.
+        \item Odvod funkcije $f(x) = x$ je $f'(x) = 1$.
         \item Odvod funkcije $f(x) = kx + n$ je $f'(x) = k.$
     \end{enumerate}
 \end{zgled}
@@ -3497,7 +3585,7 @@ Enačba tangente na graf $f$ v točki $(a, f(a))$ je $y - f(a) = f'(a)(x-a).$
     Funkcija $f$ je zvezno odvedljiva na $I$, če je na $I$ odvedljiva 
     in je njen odvod $f': I \rightarrow \R$ zvezna funkcija na $I$.
     Množico zveznih funkcij na $I$ označimo s $C(I)$,
-    množico zvezno odvedljivih funkcij na $I$ pa s $C^1(I)$
+    množico zvezno odvedljivih funkcij na $I$ pa s $C^1(I)$.
 \end{definicija}
 
 \begin{trditev}
@@ -3580,20 +3668,20 @@ $df_a (h) = f'(a) \cdot h = f'(a) \cdot dx_a.$ Od tod sledi zapis $df = f'(a)\,d
         \begin{align*}
             \limf{h}{0}{\frac{(f+g)(a+h) - (f+g)(a)}{h}} &= \limf{h}{0}{\frac{f(a+h) + g(a+h) - f(a) - g(a)}{h}}\\
             &= \limf{h}{0}{\frac{f(a+h) - f(a)}{h}} + \limf{h}{0}{\frac{g(a+h) - g(a)}{h}}\\
-            &= f'(a) + g'(a)
+            &= f'(a) + g'(a).
         \end{align*}
         \item Dokaz 3. točke:
         \begin{align*}
             \limf{h}{0}{\frac{(f\cdot  g)(a+h) - (f \cdot g)(a)}{h}} &= \limf{h}{0}{\frac{f(a+h) \cdot g(a+h) - f(a) \cdot g(a)}{h}}\\
             &= \limf{h}{0}{\frac{f(a+h) g(a+h) - f(a) g(a+h)}{h}}\\ &+ \limf{h}{0}{\frac{g(a+h) f(a) - f(a) g(a)}{h}}\\
             &= \limf{h}{0}{g(a+h)} \limf{h}{0}{\frac{f(a+h) - f(a)}{h}}\\ &+ \limf{h}{0}{f(a)}\limf{h}{0}{\frac{g(a+h) - g(a)}{h}}\\
-            &\stackrel{\text{$g$ zvezna}}{=} g(a) f'(a) + f(a) g'(a)
+            &\stackrel{\text{$g$ zvezna}}{=} g(a) f'(a) + f(a) g'(a).
         \end{align*}
         \item Dokaz 4. točke:
         \begin{align*}
             \limf{h}{0}{\frac{\frac{1}{g(a+h)} - \frac{1}{g(a)}}{h}} &= \limf{h}{0}{\frac{g(a) - g(a+h)}{h \cdot g(a+h) \cdot g(a)}}\\
             &= \limf{h}{0}{\frac{g(a) - g(a+h)}{h}} \limf{h}{0}{\frac{1}{g(a+h)g(a)}}\\
-            &\stackrel{\text{$g$ zvezna}}{=} -\frac{g'(a)}{g^2(a)} \qedhere
+            &\stackrel{\text{$g$ zvezna}}{=} -\frac{g'(a)}{g^2(a)}. \qedhere
         \end{align*}
     \end{enumerate}
 \end{dokaz}
@@ -3976,7 +4064,7 @@ Omenimo še očitno geometrijsko dejstvo, da ima graf funkcije $f$ v lokalnih ek
 \begin{izrek}[Rolleov izrek]
     Naj bo $f : [a,b] \rightarrow \R$ zvezna funkcija, ki je odvedljiva na $(a,b)$. 
     Naj bo $f(a) = f(b) = 0.$
-    Tedaj obstaja taka točka $c \in (a,b)$, da je $f'(c) = 0$ ($f$ ima stacionarno točko na odprtem intervalu.)
+    Tedaj obstaja taka točka $c \in (a,b)$, da je $f'(c) = 0$ ($f$ ima stacionarno točko na odprtem intervalu).
 \end{izrek}
 
 \begin{dokaz}
@@ -4463,8 +4551,8 @@ Predstavljamo si lahko, da neodvisna spremenljivka $t$ pomeni čas, $\vec{r} (t)
 \end{zgled}
 
 \begin{definicija}
-    Tir ali sled poti je množica $\vec{r} (I) = \Gamma = \{\vec{r}(t), t \in I\}$.
-    oziroma zaloga preslikave $\vec{r} (t)$.
+    Tir ali sled poti je množica $\vec{r} (I) = \Gamma = \{\vec{r}(t), t \in I\}$
+    oziroma zaloga vrednosti preslikave $\vec{r} (t)$.
     To množico pogosto imenujemo krivulja v $\R^2.$
 \end{definicija}
 
@@ -4902,27 +4990,28 @@ Obstoj nedoločeneg integrala pa ni samoumeven -- v splošnem ta ne obstaja.
     \end{tabular}
 \end{table}
 \end{comment}
+
 \subsection{Osnovna pravila za iskanje nedoločenih integralov}
 
 Naslednja pravila izhajajo iz pravil za odvajanje.
 Naj bosta $f,g$ funkciji, ki imata nedoločena integrala $F, G$.
 Potem veljajo naslednje trditve.
-\begin{itemize}
+\begin{enumerate}
     \item Aditivnost: $\int (f+g)(x)\,dx = \int f(x)\,dx + \int g(x)\,dx$.
     \item Homogenost: $\int (\alpha f) (x)\,dx = \alpha \int f(x)\,dx$ za poljuben $\alpha \in \R$.
-    \item Integracija per partes. Naj bosta $u,v$ odvedljivi na $I$. Potem velja
+    \item Integracija per partes: naj bosta $u,v$ odvedljivi na $I$. Potem velja
     $\int u v' = u v - \int u' v.$
-\end{itemize}
-
-    Razmislimo o vpeljavi nove spremenljivke v nedoločeni integral.
-    Naj bo $\phi: J_t \rightarrow I$ odvedljiva, strogo monotona bijekcija z odvedljivim inverzom ($\phi'(t) \neq 0,\ \forall t$).
+    \item Vpeljava nove spremenljivke v nedoločeni integral:
+    naj bo $\phi: J_t \rightarrow I$ odvedljiva, strogo monotona bijekcija z odvedljivim inverzom ($\phi'(t) \neq 0,\ \forall t$).
     Naj bo $G(t) = \int f(\phi (t)) \phi'(t)\,dt$. Potem velja:
     \begin{align*}
         F'(x) &= G'(\phi^{-1} (x)) (\phi^{-1})' (x)\\
         &= f(\phi (\phi^{-1} (x))) \cdot \phi'(\phi^{-1}(x)) \cdot (\phi^{-1})'(x)\\
-        &= f(x) \cdot 1 = f(x).
+        &= f(x) \cdot 1 = f(x)
     \end{align*} 
     in $F(x) = G(\phi^{-1} (x))$ je nedoločeni integral $f$.
+\end{enumerate}
+
 
 \begin{opomba}
     Točki (1) in (2) izhajata iz linearnosti odvoda, točka (3) izhaja iz Leibnizovega pravila odvajanja in točka (4) izhaja iz verižnega pravila o odvajanju.
@@ -5145,7 +5234,7 @@ Očitno velja $$m (b-a) \leq s \leq S \leq M(b-a).$$
         Naj bo $D_0$ delitev $[a, b].$ Potem obstaja tak $\delta > 0$, da je za vsako delitev, za katero je $\max_j \Delta x_j < \delta,$ vsota dolžin delilnih intervalov, ki niso vsebovani v nobenem od delilnih intervalov $D_0$, pod $\varepsilon$.
     \end{lema}
         Sedaj za '$\varepsilon$' v pomožni trditvi uporabimo $\frac{\varepsilon}{2(M - m)}$ in uporabimo ustrezen $\delta > 0$.
-        Naj bo $D$ poljubna delitv, da je $\max_{j} \Delta x_j < \delta.$ Sedaj zapišemo
+        Naj bo $D$ poljubna delitev, da je $\max_{j} \Delta x_j < \delta.$ Sedaj zapišemo
         \begin{align*}
             S(D) - s(D) &= \sum_j M_j \Delta x_j - \sum _j m_j \Delta x_j\\
             &= \sum_j (M_j - m_j) \Delta x_j\\
@@ -5289,7 +5378,7 @@ Očitno velja $$m (b-a) \leq s \leq S \leq M(b-a).$$
 \end{trditev}
 
 \begin{dokaz}
-    Direktno sledi iz Riemannovih vsot: $R(f, D, \mathcal{T}) \leq R(f, D, \mathcal{T}).$
+    Direktno sledi iz Riemannovih vsot: $R(f, D, \mathcal{T}) \leq R(g, D, \mathcal{T}).$
 \end{dokaz}
 
 \begin{posledica}
@@ -5508,9 +5597,10 @@ Podobno definiramo še ostale posplošene integrale.
 \begin{izrek}[Primerjalni kriterij]
     Naj bosta $f,g: [a, b) \rightarrow \R$ funkciji, ki sta za vsak $b' \in (a, b)$ integrabilni na $[a, b']$.
     Denimo, da za $\forall x \in [a, b)$ velja $0 \leq f(x) \leq g(x)$.
-    Če je $\int_a ^b g(x)\,dx < \infty$ oz. integral konvergira, konvergira tudi $\int_a ^b f(x)\,dx \leq \int_a ^b g(x)\,dx$.
-    Velja tudi obratno: če integral $\int_a ^b f(x)$ divergira, divergira tudi integral $\int_a ^b g(x)\,dx.$
+    Če je $\int_a ^b g(x)\,dx < \infty$ oz. integral konvergira, konvergira tudi $\int_a ^b f(x)\,dx \leq \int_a ^b g(x)\,dx$.   
 \end{izrek}
+
+Kontrapozitivna verzija zgornje trditve: če integral $\int_a ^b f(x)\, dx$ divergira, divergira tudi integral $\int_a ^b g(x)\,dx.$
 
 \begin{dokaz}
     Za vsak $b' \in [a, b)$ velja $0 \leq \int_a ^{b'} f(x)\,dx \leq \int_a ^{b'} g(x)\,dx$.
@@ -5603,8 +5693,8 @@ Podobni Cauchyjevi pogoji veljajo tudi za druge limite funkcij:
         Oglejmo si integral $\int_0 ^\infty \frac{\sin ^2 (x)}{x^2}$. 
         Definirajmo funkcijo $$f(x) = \begin{cases}
             \frac{\sin ^2 (x)}{x^2} ;& x \neq 0\\
-            1 ;& x= 0
-        \end{cases}.$$
+            1 ;& x= 0.
+        \end{cases}$$
         Ta funkcija je zvezna v $0$ in omejena v okolici $0$, zato integral $\int _0 ^b f(x)\,dx$ obstaja za nek $b \in \R$.
         Sedaj definirajmo funkcijo 
         $$g(x) = \begin{cases}
@@ -5637,7 +5727,7 @@ Podobni Cauchyjevi pogoji veljajo tudi za druge limite funkcij:
     Tako dobimo 
     \begin{align*}
         \int_0 ^\infty \left| \frac{\sin x}{x} \right|\,dx &= \sum_{k = 0} ^\infty \int_{k \pi} ^{(k+1) \pi} \frac{|\sin x|}{x}\,dx\\
-        &\leq \sum_{k = 0} ^\infty \frac{1}{(k+1) \pi} \int_{k \pi} ^{(k+1) \pi} |\sin x|\,dx\\
+        &\geq \sum_{k = 0} ^\infty \frac{1}{(k+1) \pi} \int_{k \pi} ^{(k+1) \pi} |\sin x|\,dx\\
         &= \sum_{k = 0} ^\infty \frac{2}{(k+1) \pi}\\
         &= \frac{2}{\pi} \sum_{k=1} ^\infty = \infty.
     \end{align*}
@@ -5766,7 +5856,7 @@ Naj bo $D \subseteq D'$. Potem je po trikotniški neenakosti $\lambda (D) \leq \
 \begin{definicija}
     Dolžina poti $\gamma$ je $\lambda (\gamma) \in [0, \infty]$ s predpisom 
     $$\lambda(\gamma) = \sup \{\lambda (D);\ \text{$D$ delitev $[a, b]$}\}.$$
-    Če je $\lambda (\gamma) < \infty$, je pot rektifikabilna ali izmerljiva.
+    Če je $\lambda (\gamma) < \infty$, je pot rektifiabilna ali izmerljiva.
 \end{definicija}
 
 \begin{izrek}
@@ -5983,7 +6073,7 @@ Vsoto vrste definiramo tako, da tvorimo zaporedje njenih delnih vsot $(S_n)_{n=1
     \begin{itemize}
         \item Če vrsta $\sum_1 ^\infty a_n$ konvergira, za vsak $m \in \N$ konvergira tudi vrsta $\sum_m ^\infty a_n.$
         \item Če za nek $m \in \N$ konvergira vrsta $\sum_m ^\infty$, konvergira tudi vrsta $\sum_1 ^\infty a_n$.
-        \item Vrsto $\sum_m ^\infty a_n$ imenujemo ostanek ali rep vrste $\int_1 ^\infty a_n$.
+        \item Vrsto $\sum_m ^\infty a_n$ imenujemo ostanek ali rep vrste $\sum_1 ^\infty a_n$.
     \end{itemize}
 \end{opomba}
 
@@ -6104,7 +6194,7 @@ Potem je zaporedje delnih vsot $(S_n)_{n=1} ^\infty$ naraščajoče in imamo dve
     torej ne velja $\limzap{a_n} = 0$ in vrsta divergira.
 \end{dokaz}
 
-\begin{izrek}[Integralski ali Cauchyjev kriterij]
+\begin{izrek}[Integralski kriterij]
     Naj bo $f:[1, \infty) \rightarrow \R$ pozitivna, zvezna, padajoča funkcija.
     Tedaj vrsta $\sum_{n=1} ^\infty f(n)$ konvergira natanko tedaj, ko obstaja posplošeni integral $\int_1 ^\infty f(x)\,dx$.
 \end{izrek}
@@ -6132,7 +6222,7 @@ Potem je zaporedje delnih vsot $(S_n)_{n=1} ^\infty$ naraščajoče in imamo dve
 \end{zgled}
 
 \begin{izrek}[Raabejev kriterij]
-    Naj bo $\sum_1 ^\infty a_n$ vrsta s pozitivnimi členi in naj bo $R = n \left(\frac{a_n}{a_{n+1}} - 1 \right)$.
+    Naj bo $\sum_1 ^\infty a_n$ vrsta s pozitivnimi členi in naj bo $R_n = n \left(\frac{a_n}{a_{n+1}} - 1 \right)$.
     \begin{enumerate}
         \item Če obstaja tak $r > 1$ in $n_0 \in \N$, da za $\forall n \geq n_0$ velja $1 < r \leq R_n$, vrsta konvergira.
         \item Če obstaja tak $n_0 \in \N$, da za $\forall n \geq n_0$ velja $R_n \leq 1$, tedaj vrsta divergira.
@@ -6167,7 +6257,7 @@ Potem je zaporedje delnih vsot $(S_n)_{n=1} ^\infty$ naraščajoče in imamo dve
     Torej obstaja tak $n_0$, da za $n \geq n_0$ velja ta neenakost.
 \end{dokaz}
 
-\begin{dokaz}[Raabe]
+\begin{dokaz}[Dokaz Raabejevega kriterija]
     Naj bo $n \left(\frac{a_n}{a_{n+1}} - 1 \right) \geq r > 1$ za vse $n \geq \tilde{n}_0$.
     To pa je ekvivalentno $\frac{a_n}{a_{n+1}} \geq 1 + \frac{r}{n}$.
     Naj bo $1 < s = \frac{p}{q} < r$.
@@ -6286,10 +6376,10 @@ V splošnem je odgovor da, za absolutno konvergentne vrste pa je odgovor ne.
     Sedaj vzamemo dovolj velik $n_1 \in \N$, da je $$\{a_1, \dots, a_{n_0}\} \subseteq \{\pi(1), \dots, \pi(n_1)\}.$$
     Naj bo $N \geq n_1$ in $S = \sum_1 ^\infty a_n = \lim_{N \to \infty} S_N$.  Sedaj velja 
     \begin{align*}
-        \left|S - \sum_1 ^N a_\pi(n)\right| &= \left|\sum_{m \notin \{\pi(1), \dots, \pi(N)\}} a_m \right|\\
+        \left|S - \sum_1 ^N a_{\pi(n)}\right| &= \left|\sum_{m \notin \{\pi(1), \dots, \pi(N)\}} a_m \right|\\
         &\leq \sum_{m \notin \{\pi(1), \dots, \pi(N)\}} \left| a_m \right|\\
         &\leq \sum_{m \notin \{\pi(1), \dots, \pi(n_1)\}} \left| a_m \right|\\
-        &\leq \sum_{n_0 + 1} ^\infty \left| a_m \right| < \varepsilon.
+        &\leq \sum_{m = n_0 + 1} ^\infty \left| a_m \right| < \varepsilon.
     \end{align*}
     Za $\forall \varepsilon > 0$ obstaja $n_1 \in \N$, da za $\forall N \geq n_1$ velja $\left| S - \sum_1 ^N a_{\pi(n)} \right| < \varepsilon$ in $\lim_{N \rightarrow \infty} \sum_{1} ^N a_{\pi(n)} = S$.
 \end{dokaz}
@@ -6328,7 +6418,7 @@ Dvojne vrste si lahko predstavljamo kot neskončno matriko v obe smeri,
     \end{matrix}
 \end{equation*}
 kjer so vrste $A_1 = \sum_1 ^\infty a_{1j}, A_2 = \sum_1 ^\infty a_{2j},\dots$ in 
-$B_1 = \sum_1 ^\infty b_{i1}, B_2 = \sum_1 ^\infty b_{i2},\dots$.
+$B_1 = \sum_1 ^\infty a_{i1}, B_2 = \sum_1 ^\infty a_{i2},\dots$.
 Zanima nas, kdaj je $A = \sum_1 ^\infty A_i = \sum_{i=1} ^\infty \left(\sum_{j=1} ^\infty a_{ij}\right)$ enako $B = \sum_1 ^\infty B_j = \sum_{j=1} ^\infty \left(\sum_{i=1} ^\infty a_{ij}\right)$
 in ali je dovoljena menjava vrstnega reda seštevanja.
 Vemo, da velja $$\sum_{j=1} ^\infty \left(\sum_{j=1} ^M a_{ij}\right) = \sum_{j=1} ^M \left(\sum_{i=1} ^\infty a_{ij}\right),$$
@@ -6735,7 +6825,7 @@ Ta vrsta seveda konvergira za $x = a$. Ali konvergira še kje drugje?
 Motivacija za vpeljavo Taylorjeve formula je aproksimacija funkcij s polinomi.
 
 \begin{definicija}
-    Naj bo $f$ n-krat odvedljiva funkcija v točki $a$.
+    Naj bo $f$ $n$-krat odvedljiva funkcija v točki $a$.
     Polinom $$T_n (x) = f(a) + \frac{f'(a)}{1!} (x-a) + \dots + \frac{f^{(n)}(a)}{n!} (x-a)^n$$
     imenujemo $n-ti$ Taylorjev polinom funkcije $f$ v točki $a$.
 \end{definicija}
@@ -6923,7 +7013,7 @@ Potem dobimo
 \end{align*}
 Ponovno lahko za $0 < x < 1$ ocenimo ostanek $R_n (x) = \binom{\alpha}{n+1} (1 + \theta x)^{\alpha - n - 1} x^{n+1}$, kjer je $\theta \in (0, 1)$, in dobimo $\limzap{R_n (x)} = 0$.
 Prav tako lahko za $-1 < x < 0$ ocenimo ostanek, dan z drugo formulo: $R_n (x) = (n+1) \binom{\alpha}{n+1} (1 + \theta x)^{\alpha - n - 1} (1 - \theta)^n x^{n+1}$.
-Pri tem uporabimo enak argument\footnote{Za natančen dokaz glej: predavanje 53.} kot pri logaritmu in znova dokažemo, da velja $\limzap{R_n (x)} = 0$.
+Pri tem uporabimo enak argument kot pri logaritmu in znova dokažemo, da velja $\limzap{R_n (x)} = 0$.
 
 \begin{trditev}
     Taylorjev razvoj binomske vrste je $$(1+x)^\alpha = \sum_{n= 0} ^\infty \binom{\alpha}{n} x^n$$
@@ -6982,7 +7072,7 @@ Pogosto metriko na vektorskih prostorih dobimo iz norme.
     \begin{enumerate}
         \item pozitivna definitnost: $\|x\| \geq 0$ in $\|x\| = 0 \iff x = 0$ za $\forall x \in V$.
         \item homogenost: $\|\lambda x\| = |\lambda| \|x\|$ za $\forall x \in V, \forall \lambda \in \mathbb{F}$.
-        \item trikotniška neenakost: $\|x+ y\| \leq \|x\| + \|y\|$ za $\forall x,y \in V$ 
+        \item trikotniška neenakost: $\|x+ y\| \leq \|x\| + \|y\|$ za $\forall x,y \in V$.
     \end{enumerate}
 \end{definicija}
 
@@ -7008,9 +7098,9 @@ Včasih pa normo dobimo iz skalarnega produkta.
     Naj bo $V$ vektorski prostor nad $\R$. Skalarni produkt 
     na $V$ je funkcija $(\cdot, \cdot): V \times V \rightarrow \R$ z lastnostmi:
     \begin{enumerate}
-        \item pozitivna definitnost: $(x,x) \geq 0$ in $(x,x) = 0 \iff x = 0$
-        \item simetričnost: $(x,y) = (y,x)$
-        \item linearnost v prvem faktorju: $(\alpha x + \beta y, z)= \alpha (x,z) + \beta (y,z)$
+        \item pozitivna definitnost: $(x,x) \geq 0$ in $(x,x) = 0 \iff x = 0$.
+        \item simetričnost: $(x,y) = (y,x)$.
+        \item linearnost v prvem faktorju: $(\alpha x + \beta y, z)= \alpha (x,z) + \beta (y,z)$.
     \end{enumerate}
 \end{definicija}
 
@@ -7037,7 +7127,7 @@ Včasih pa normo dobimo iz skalarnega produkta.
     \begin{align*}
         \|x+y\|^2 &= \|x\|^2 + 2(x,y) + \|y\|^2\\
         &\leq \|x\|^2 + 2\|x\| \|y\| + \|y\|^2\\
-        &= (\|x\| + \|y\|)^2 \qedhere
+        &= (\|x\| + \|y\|)^2. \qedhere
     \end{align*}
 \end{dokaz}
 
@@ -7071,7 +7161,7 @@ Sedaj bomo definirali okolice (topologijo) na $(M, d)$.
     Naj bo $A$ podmnožica v metričnem prostoru.
     \begin{itemize}
         \item Točka $a \in M$ je notranja točka množice $A$, če obstaja $r > 0$, da je 
-        $K(a, r) > 0$. Notranjost množice $A$, označena z $Int (A)$, je množica vseh notranjih točk $A$.
+        $K(a, r) > 0$. Notranjost množice $A$, označena z $\Int (A)$, je množica vseh notranjih točk $A$.
         \item Točka $b \in M$ je zunanja točka za $A$, če je notranja za $\stcomp{A}$. To pomeni, da obstaja
         $r > 0$, da je $K(b, r) \cap A = \emptyset.$
         \item Točka $c \in M$ je robna (ali mejna) točka za $A$, če za $\forall r > 0$ velja $K(c,r) \cap A \neq \emptyset$ in $K(c,r) \cap \stcomp{A} \neq \emptyset$.
@@ -7080,7 +7170,7 @@ Sedaj bomo definirali okolice (topologijo) na $(M, d)$.
 \end{definicija}
 
 \begin{opomba}
-    $Int(A)$, $Int(\stcomp{A})$ in $\partial A$ so medsebojno disjunktne množice, za katere velja $Int(A) \cup Int(\stcomp{A}) \cup \partial A$.
+    $\Int(A)$, $\Int(\stcomp{A})$ in $\partial A$ so medsebojno disjunktne množice, za katere velja $\Int(A) \cup \Int(\stcomp{A}) \cup \partial A$.
     Prav tako po definiciji velja $\partial A = \partial (\stcomp{A})$.
 \end{opomba}
 
@@ -7093,28 +7183,28 @@ Sedaj bomo definirali okolice (topologijo) na $(M, d)$.
 \begin{zgled}
     Oglejmo si metrični prostor $M = \overline{K}(0,1) \subseteq \R^2$ z običajno metriko\footnote{Za običajno metriko v $\R^2$ vzamemo $d_{st} (x,y) = |x - y|$.}.
     Potem je vsaka točka v $M$ odprta. Sedaj naj bo $M = \R^2$.
-    Potem za $A = \overline{K}(0,1) \subseteq M$ velja $Int(A) = K(0,1)$, $\partial A = S(0,1) = \{(x,y);\ x^2 + y^2 = 1\}$ in $Int(\stcomp{A}) = \stcomp{A}$.
+    Potem za $A = \overline{K}(0,1) \subseteq M$ velja $\Int(A) = K(0,1)$, $\partial A = S(0,1) = \{(x,y);\ x^2 + y^2 = 1\}$ in $\Int(\stcomp{A}) = \stcomp{A}$.
 \end{zgled}
 
 \begin{zgled}
-    Naj bo $A = \Q \subseteq \R$. Potem je $Int(\Q) = \emptyset$ in $Int(\stcomp{\Q}) = \emptyset$, torej velja $\partial \Q = \R.$
+    Naj bo $A = \Q \subseteq \R$. Potem je $\Int(\Q) = \emptyset$ in $\Int(\stcomp{\Q}) = \emptyset$, torej velja $\partial \Q = \R.$
 \end{zgled}
 
 \begin{zgled}
-    Naj bo $(M, d_{disk})$ in $A \subseteq M$. Potem je $Int(A) = A$, saj za poljuben $a \in A$ velja $K(a, \frac{1}{2}) = \{a\}$.
+    Naj bo $(M, d_{disk})$ in $A \subseteq M$. Potem je $\Int(A) = A$, saj za poljuben $a \in A$ velja $K(a, \frac{1}{2}) = \{a\}$.
     Od tod sledi, da je $\partial A = \emptyset.$
 \end{zgled}
 
 \begin{definicija}
-    Podmnožica $O$ metričnega prostora $(M, d)$ je odprta, če je vsaka njena točka notranja: $Int(O) = O.$
+    Podmnožica $O$ metričnega prostora $(M, d)$ je odprta, če je vsaka njena točka notranja: $\Int(O) = O.$
     Prav tako je podmnožica $Z$ v $(M, d)$ zaprta, če je njen komplement odprt.
 \end{definicija}
 
 \begin{opomba}
     $Z$ je zaprta natanko tedaj, ko velja $\partial Z \subseteq Z$ oziroma $Z$ vsebuje vse svoje robne elemente.
-    To sledi iz tega, ker je $M = Int(Z) \cup \partial Z \cup Int(\stcomp{Z}) = Int(Z) \cup \partial Z \cup \stcomp{Z}.$
-    Torej je $Int(Z) \cup \partial Z = Z$ in torej $\partial Z \subseteq Z.$
-    Seveda velja tudi obratno: če je $\partial Z \subseteq Z$, potem je $Int(\stcomp{Z}) = \stcomp{Z}$.
+    To sledi iz tega, ker je $M = \Int(Z) \cup \partial Z \cup \Int(\stcomp{Z}) = \Int(Z) \cup \partial Z \cup \stcomp{Z}.$
+    Torej je $\Int(Z) \cup \partial Z = Z$ in torej $\partial Z \subseteq Z.$
+    Seveda velja tudi obratno: če je $\partial Z \subseteq Z$, potem je $\Int(\stcomp{Z}) = \stcomp{Z}$.
 \end{opomba}
 
 \begin{zgled}
@@ -7155,15 +7245,15 @@ Sedaj bomo definirali okolice (topologijo) na $(M, d)$.
 
 \begin{opomba}
     \begin{enumerate}
-        \item Za $\forall A \subseteq M$ je $Int(A)$ odprta podmnožica.
-        \item Rob $\partial A = M \setminus (Int(A) \cup Int(\stcomp{A}))$ je zaprta podmnožica.
-        \item $Int(A)$ je največja odprta podmnožica vsebovana v $A$, saj za $\forall O \subseteq A$ odprto podmnožico velja $O \subseteq Int(A)$.
+        \item Za $\forall A \subseteq M$ je $\Int(A)$ odprta podmnožica.
+        \item Rob $\partial A = M \setminus (\Int(A) \cup \Int(\stcomp{A}))$ je zaprta podmnožica.
+        \item $\Int(A)$ je največja odprta podmnožica vsebovana v $A$, saj za $\forall O \subseteq A$ odprto podmnožico velja $O \subseteq \Int(A)$.
     \end{enumerate}
 \end{opomba}
 
 \begin{dokaz}[Dokaz 3. točke]
     Če je $O \subseteq A$ odprta, za $\forall x \in O$ obstaja $r > 0$, da je $K(x,r) \subseteq O \subseteq A$.
-    Torej je $x \in Int(A)$ in $O \subseteq Int(A)$. Vemo pa že, da je $Int(A)$ odprta podmnožica.
+    Torej je $x \in \Int(A)$ in $O \subseteq \Int(A)$. Vemo pa že, da je $\Int(A)$ odprta podmnožica.
 \end{dokaz}
 
 \begin{izrek}[Topologija]
@@ -7226,16 +7316,16 @@ Sedaj bomo definirali okolice (topologijo) na $(M, d)$.
 \end{definicija}
 
 \begin{trditev}
-    $\overline{A} = A \cup \partial A = Int(A) \cup \partial A$.
+    $\overline{A} = A \cup \partial A = \Int(A) \cup \partial A$.
 \end{trditev}
 
 \begin{dokaz}
-    Vemo, da je $Int(A) \subseteq A$, zato je $Int(A) \cup \partial A \subseteq A \cup \partial A$.
-    Hkrati pa je $Int(A) \cup \partial A = (Int (A^\mathsf{c}))^\mathsf{c}$, torej je to zaprta množica.
-    Sedaj pa iz $Int (A^\mathsf{c}) \subseteq A^\mathsf{c}$ sledi $A \subseteq (Int (A^\mathsf{c}))^\mathsf{c} = Int(A) \cup \partial A$, torej tudi $A \cup \partial A \subseteq Int (A) \cup \partial A$.
-    Torej je $A \cup \partial A = Int (A) \cup \partial A$ in to je zaprta množica, ki vsebuje $A$.
-    Če je $F$ zaprta, $A \subseteq F$, je $F^\mathsf{c} \subseteq A^\mathsf{c}$ in zato $F^\mathsf{c} \subseteq Int(A^\mathsf{c}).$
-    Torej je $Int (A) \cup \partial A = (Int(A^\mathsf{c}))^\mathsf{c} \subseteq F$.
+    Vemo, da je $\Int(A) \subseteq A$, zato je $\Int(A) \cup \partial A \subseteq A \cup \partial A$.
+    Hkrati pa je $\Int(A) \cup \partial A = (\Int (A^\mathsf{c}))^\mathsf{c}$, torej je to zaprta množica.
+    Sedaj pa iz $\Int (A^\mathsf{c}) \subseteq A^\mathsf{c}$ sledi $A \subseteq (\Int (A^\mathsf{c}))^\mathsf{c} = \Int(A) \cup \partial A$, torej tudi $A \cup \partial A \subseteq \Int (A) \cup \partial A$.
+    Torej je $A \cup \partial A = \Int (A) \cup \partial A$ in to je zaprta množica, ki vsebuje $A$.
+    Če je $F$ zaprta, $A \subseteq F$, je $F^\mathsf{c} \subseteq A^\mathsf{c}$ in zato $F^\mathsf{c} \subseteq \Int(A^\mathsf{c}).$
+    Torej je $\Int (A) \cup \partial A = (\Int(A^\mathsf{c}))^\mathsf{c} \subseteq F$.
 \end{dokaz}
 
 \begin{definicija}
@@ -7466,7 +7556,7 @@ kjer je $a_1$ poljubna točka $M$.
         in ker je $0 \leq q < 1$, sledi $d(a, b) = 0$ in torej $a = b$.
         \item Cauchyjev pogoj: naj bo $D = d(a_1, a_2)$.
         Potem je $d(a_2, a_3) = d(f(a_1), f(a_2)) \leq q d(a_1, a_2) = qD$.
-        Z indukcijo dobimo $d(a_{n+1}, a_{n+2}) \leq q^n D$ za $\forall n \in N$.
+        Z indukcijo dobimo $d(a_{n+1}, a_{n+2}) \leq q^n D$ za $\forall n \in \N$.
         Naj bosta $n, p \in \N$. Potem imamo 
         \begin{align*}
             d(a_{n+1}, a_{n+p}) &\leq d(a_{n+1}, a_{n+1}) + \dots + d(a_{n+p-1}, a_{n+p})\\
@@ -7729,7 +7819,6 @@ kjer je $a_1$ poljubna točka $M$.
         \rho(f(x), f(x')) \leq \rho (f(x), f(x_{j_0})) + \rho (f(x_{j_0}), f(x')) = \varepsilon. \qedhere
     \end{equation*}
 \end{dokaz}
-
 
 
 
